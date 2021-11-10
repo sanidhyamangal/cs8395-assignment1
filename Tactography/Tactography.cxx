@@ -9,3 +9,15 @@
 #include "itkDiffusionTensor3D.h"
 #include "itkImageRegionIterator.h"
 #include "itkImageToVTKImageFilter.h"
+
+int main ( int argc, char * argv[] )
+{
+  // Verify command line arguments
+  if( argc < 3 )
+    {
+      std::cerr << "Usage: " << std::endl ;
+      std::cerr << argv[0] << " inputImageFile outputImageFile" << std::endl ; 
+      return -1 ;
+    }
+
+}
