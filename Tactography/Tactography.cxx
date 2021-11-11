@@ -20,6 +20,20 @@ int main ( int argc, char * argv[] )
       return -1 ;
     }
 
+    // define all the datatype
+    const unsigned int nDims = 3;
+
+    // define tensor type and image type 
+    typedef itk::DiffusionTensor3D <float> TensorType;
+    typedef itk::Image <TensorType, nDims> ImageType;
+    typedef itk::ImageFileReader <ImageType> ImageFileReader;
+
+    ImageFileReader::Pointer imgReader = ImageFileReader::New();
+    imgReader -> SetFileName(argv[1]);
+    imgReader -> Update();
+
+    std::cout << imgReader -> GetLargestPossibleRegion() -> GetSize();
+
     // Done
     return 0;
 }
