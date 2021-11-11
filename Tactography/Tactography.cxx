@@ -32,7 +32,7 @@ int main ( int argc, char * argv[] )
     imgReader -> SetFileName(argv[1]);
     ImageType::Pointer img = imgReader -> GetOutput();
     ImageType::RegionType region = img -> GetLargestPossibleRegion();
-    ImageType::SizeType size = region -> GetSize();
+    ImageType::SizeType size = region.GetSize();
 
     std::cout << size;
 
