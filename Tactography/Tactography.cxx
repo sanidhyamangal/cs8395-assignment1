@@ -31,8 +31,10 @@ int main ( int argc, char * argv[] )
     ImageFileReader::Pointer imgReader = ImageFileReader::New();
     imgReader -> SetFileName(argv[1]);
     ImageType::Pointer img = imgReader -> GetOutput();
+    ImageType::RegionType region = img -> GetLargestPossibleRegion();
+    ImageType::SizeType size = region -> GetSize();
 
-    std::cout << img -> GetLargestPossibleRegion() -> GetSize();
+    std::cout << size;
 
     // Done
     return 0;
