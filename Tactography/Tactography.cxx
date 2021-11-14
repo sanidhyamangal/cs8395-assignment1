@@ -14,7 +14,6 @@ typedef itk::Image < TensorType , nDims > ImageType ;
 typedef itk::Vector <double, nDims> VectorType;
 typedef itk::Image <VectorType, nDims> PAImageType ;
 typedef itk::Image < double, nDims> BaseImageType ;
-typedef itk::TensorImageFileReader < ImageType > TensorImageFileReaderType ;
 
 int main ( int argc, char * argv[] )
 {
@@ -31,10 +30,11 @@ int main ( int argc, char * argv[] )
 
   
   //---Read Input Images---//
-  TensorImageFileReaderType ::Pointer inputFileReader = TensorImageFileReaderType ::New() ;  
-  inputFileReader->SetFileName ( argv[1] ) ;
-  inputFileReader->Update();   // go read
-  ImageType::Pointer img = inputFileReader->GetOutput();
+  typedef itk::ImageFileReader < ImageType > ImageReaderType1 ;
+  ImageReaderType1 ::Pointer myReader1 = ImageReaderType1 ::New() ;  
+  myReader1->SetFileName ( argv[1] ) ;
+  myReader1->Update();   // go read
+  ImageType::Pointer myImage = myReader1->GetOutput();
 
 
   //---(2) Compute principal eigenvector---//
