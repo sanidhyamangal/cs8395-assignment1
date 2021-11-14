@@ -88,8 +88,8 @@ int main ( int argc, char * argv[] )
     // paImageIterator.GoToBegin();
     // inputImageIterator.GoToBegin();
 
-    OutputIteratorType outputIterator (myPAImage, myCustomRegion);
-    InputIteratorType inputIterator (myImage, myCustomRegion);
+    OutputIteratorType outputIterator (paImage, newRegion);
+    InputIteratorType inputIterator (img, newRegion);
     outputIterator.GoToBegin ();
     inputIterator.GoToBegin () ;
     
