@@ -20,6 +20,64 @@ typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
 typedef itk::TensorFractionalAnisotropyImageFilter <ImageType, BaseImageType> FAImageFilterType;
 
 
+ImageType::IndexType computeNewIdx(VectorType thisVector, double delta, ImageType::IndexType currLoc, bool sign){
+  ImageType::IndexType newLoc = currLoc;
+
+  if (sign){
+    newLoc[0] = round(thisVector[0]*delta + currLoc[0]);
+    newLoc[1] = round(thisVector[1]*delta + currLoc[1]);
+    newLoc[2] = round(thisVector[2]*delta + currLoc[2]);
+
+    return newLoc;
+  }
+
+  // return for negative
+  newLoc[0] = round(-thisVector[0]*delta + currLoc[0]);
+  newLoc[1] = round(-thisVector[1]*delta + currLoc[1]);
+  newLoc[2] = round(-thisVector[2]*delta + currLoc[2]);
+  
+  return newLoc;
+}
+
+int traverseImage(FAImageFilterType::Pointer faImage, PAImageType::Pointer paImage, BaseImageType::Pointer trackerImage, ImageType::IndexType curLoc ,double delta, int iter){
+  // stopping conditions
+  // if location is outside of the image
+  if (!trackerImage -> GetLargestPossibleRegion().IsInside(curLoc)){
+    return 0;
+  }
+
+  // if iter is greater than 1000
+  if (iter > 1000){
+    return 0;
+  }
+
+  // if location is already visited
+  if (trackerImage -> GetPixel(curLoc) == 1){
+    return 0;
+  }
+
+  // if the eigen value is less then FA val
+  if (faImage -> GetPixel(curLoc) < 0.2) {
+    return 0;
+  }
+
+  // mark the pixel in tracker image as visited
+  trackerImage -> SetPixel(curLoc, 1.0);
+  iter++;
+
+  VectorType thisVector ;
+  thisVector = paImage->GetPixel(curLoc);
+
+  ImageType::IndexType forward = computeNewIdx(thisVector, delta, curLoc, true);
+  ImageType::IndexType backward = computeNewIdx(thisVector, delta, curLoc, true);
+
+  // make recursive calls to track image
+  traverseImage(faImage, paImage, trackerImage, forward, delta, iter);
+  traverseImage(faImage, paImage, trackerImage, backward, delta, iter);
+
+}
+
+
 int main ( int argc, char * argv[] )
 {
   // --- Verify command line arguments----//
@@ -130,61 +188,4 @@ int main ( int argc, char * argv[] )
 
   // Done.
   return 0 ;
-}
-
-ImageType::IndexType computeNewIdx(VectorType thisVector, double delta, ImageType::IndexType currLoc, bool sign){
-  ImageType::IndexType newLoc = currLoc;
-
-  if (sign){
-    newLoc[0] = round(thisVector[0]*delta + currLoc[0]);
-    newLoc[1] = round(thisVector[1]*delta + currLoc[1]);
-    newLoc[2] = round(thisVector[2]*delta + currLoc[2]);
-
-    return newLoc
-  }
-
-  // return for negative
-  newLoc[0] = round(-thisVector[0]*delta + currLoc[0]);
-  newLoc[1] = round(-thisVector[1]*delta + currLoc[1]);
-  newLoc[2] = round(-thisVector[2]*delta + currLoc[2]);
-  
-  return newLoc
-}
-
-int traverseImage(FAImageFilterType::Pointer faImage, PAImageType::Pointer paImage, BaseImageType::Pointer trackerImage, ImageType::IndexType curLoc ,double delta, int iter){
-  // stopping conditions
-  // if location is outside of the image
-  if (!trackerImage -> GetLargestPossibleRegion().IsInside(curLoc)){
-    return 0;
-  }
-
-  // if iter is greater than 1000
-  if (iter > 1000){
-    return 0;
-  }
-
-  // if location is already visited
-  if (trackerImage -> GetPixel(curLoc) == 1){
-    return 0;
-  }
-
-  // if the eigen value is less then FA val
-  if (faImage -> GetPixel(curLoc) < 0.2) {
-    return 0;
-  }
-
-  // mark the pixel in tracker image as visited
-  trackerImage -> SetPixel(curLoc, 1.0);
-  iter++;
-
-  VectorType thisVector ;
-  thisVector = paImage->GetPixel(curLoc);
-
-  ImageType::IndexType forward = computeNewIdx(thisVector, delta, curLoc, true);
-  ImageType::IndexType backward = computeNewIdx(thisVector, delta, curLoc, true);
-
-  // make recursive calls to track image
-  traverseImage(faImage, paImage, trackerImage, forward, delta, iter);
-  traverseImage(faImage, paImage, trackerImage, backward, delta, iter);
-
 }
