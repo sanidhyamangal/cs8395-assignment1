@@ -14,40 +14,45 @@ typedef itk::Image < TensorType , nDims > ImageType ;
 typedef itk::Vector <double, nDims> VectorType;
 typedef itk::Image <VectorType, nDims> PAImageType ;
 typedef itk::Image < double, nDims> BaseImageType ;
+typedef itk::ImageFileReader < ImageType > TensorImageFileReaderType ;
+typedef itk::ImageRegionIterator < ImageType > InputImageIterator ;
+typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
+TensorType thisTensor ;
+TensorType::EigenValuesArrayType eigenValArrayType;
+TensorType::EigenVectorsMatrixType eigenValMatrixType ;
+VectorType thisVector ;
 
 int main ( int argc, char * argv[] )
 {
   // --- Verify command line arguments----//
-  if( argc < 7 )
+  if( argc < 6 )
     {
       std::cerr << "Usage: " << std::endl ;
-      std::cerr << argv[0] << " inputImageFile inputSegmentedCCFile" <<
-                              " outputPrincipalEigenVectorImageFile" <<
-                              " outputFractionalAnisotropyImageFile" <<
-                              " outputSeedTrackImageFile outputSegmentTrackImageFile" << std::endl ; 
+      std::cerr << argv[0] << " inputFileImage inputSegmentFile outputEigenVecFile outputFAImage outputSegmentTrackFile" << std::endl ; 
       return -1 ;
     }
 
   
-  //---Read Input Images---//
-  typedef itk::ImageFileReader < ImageType > TensorImageFileReaderType ;
+  // read input image file
   TensorImageFileReaderType ::Pointer inputFileReader = TensorImageFileReaderType ::New() ;  
   inputFileReader->SetFileName ( argv[1] ) ;
-  inputFileReader->Update();   // go read
+  inputFileReader->Update();
+
+  // define the pointer for image reader
   ImageType::Pointer img = inputFileReader->GetOutput();
 
+  // compute new region which would help in computation of the eigen values and vector
+  ImageType::RegionType newRegion ; // define new region for iterator
 
-  //---(2) Compute principal eigenvector---//
-  ImageType::RegionType newRegion;
   ImageType::SizeType size = img->GetLargestPossibleRegion().GetSize() ;
-  ImageType::IndexType starter ;
-  starter[0] = 0; starter[1] = 0; starter[2] = 0;
+  ImageType::IndexType origin ; // create a new index pointing to origin
+  origin[0] = 0; origin[1] = 0; origin[2] = 0;
 
   newRegion.SetSize( size ) ;
-  newRegion.SetIndex( starter ) ;
-  typedef itk::ImageRegionIterator < ImageType > InputImageIterator ;
-  typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
+  newRegion.SetIndex( origin ) ;
 
+
+  // define PA image for other ops
   PAImageType::Pointer paImage = PAImageType::New() ;
   paImage->SetOrigin(img->GetOrigin() ) ;
   paImage->SetDirection(img->GetDirection() );
@@ -59,21 +64,26 @@ int main ( int argc, char * argv[] )
   InputImageIterator inputImageIterator (img, newRegion);
   paIterator.GoToBegin ();
   inputImageIterator.GoToBegin () ;
-  TensorType thisTensor ;
-  TensorType::EigenValuesArrayType eigenValArrayType;
-  TensorType::EigenVectorsMatrixType eigenValMatrixType ;
-  VectorType thisVector ;
 
   while (!paIterator.IsAtEnd() )
   {
    thisTensor =  inputImageIterator.Value() ;
    thisTensor.ComputeEigenAnalysis(eigenValArrayType, eigenValMatrixType) ;
-   thisVector[0] = eigenValMatrixType[2][0]*1 ; 
-   thisVector[1] = eigenValMatrixType[2][1]*1 ; thisVector[2] = eigenValMatrixType[2][2]*1 ; // Principal axis vector
 
+   // compute and store eigenValue in this tensor to update it to next iterator
+   thisVector[0] = eigenValMatrixType[2][0]*1 ; 
+   thisVector[1] = eigenValMatrixType[2][1]*1 ; 
+   thisVector[2] = eigenValMatrixType[2][2]*1 ;
+
+
+  // change the vector to zero for making it to zero for the out of bound eigen values
    if (eigenValMatrixType[2][2] == 1) { 
-     thisVector[0] = 0; thisVector[1] = 0; thisVector[2] = 0; //Change zero tensor to 0 Principal Vector Direction
+     thisVector[0] = 0; 
+     thisVector[1] = 0; 
+     thisVector[2] = 0;
    }
+
+   // update the iterators for making it better 
    paIterator.Set(thisVector) ;
    ++paIterator ;
    ++inputImageIterator ;
