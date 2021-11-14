@@ -38,11 +38,15 @@ int main ( int argc, char * argv[] )
     TensorType::EigenValuesArrayType eigenValArrayType;
     TensorType::EigenVectorsMatrixType eigenValMatrixType;
 
+        // iterate through the input image and PA imag
+
     // define iters for the image and PAImageType
     typedef itk::ImageRegionIterator <TensorImageType> ImageIteratorType;
     typedef itk::ImageRegionIterator <PAImageType> PAImageIteratorType;
     typedef itk::ImageRegionIterator < TensorImageType > InputIteratorType ;
     typedef itk::ImageRegionIterator < PAImageType > OutputIteratorType ;
+
+    
 
 
     // load input image for the processing
@@ -77,9 +81,8 @@ int main ( int argc, char * argv[] )
     paImage->Allocate() ; // allocate this as a memory space
 
 
-    // iterate through the input image and PA image
-    OutputImageIterator paImageIterator (paImage, newRegion);
-    InputImageIterator inputImageIterator(img, newRegion);
+    OutputIteratorType paImageIterator (paImage, newRegion);
+    InputIteratorType inputImageIterator(img, newRegion);
 
     // go to begin of the image iterate
     paImageIterator.GoToBegin();
