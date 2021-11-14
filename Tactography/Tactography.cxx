@@ -77,14 +77,29 @@ int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, 
 
 }
 
+template <class ImageType>
+int imageWriter(typename ImageType::Pointer image, char* filename) {
+
+  // create an ITK file writer
+  typedef itk::ImageFileWriter <ImageType> ImageFileWriterType;
+  typename ImageFileWriterType::Pointer myFileWriter = ImageFileWriterType::New();
+
+  // perform ops for writing the image
+  myFileWriter -> SetFileName(filename);
+  myFileWriter -> SetInput(image);
+  myFileWriter -> Update();
+
+  return 0;
+
+}
 
 int main ( int argc, char * argv[] )
 {
   // --- Verify command line arguments----//
-  if( argc < 6 )
+  if( argc < 5 )
     {
       std::cerr << "Usage: " << std::endl ;
-      std::cerr << argv[0] << " inputFileImage inputSegmentFile outputEigenVecFile outputFAImage outputSegmentTrackFile" << std::endl ; 
+      std::cerr << argv[0] << " inputFileImage outputEigenVecFile outputFAImage outputTrackerFile" << std::endl ; 
       return -1 ;
     }
 
@@ -186,7 +201,12 @@ int main ( int argc, char * argv[] )
 
   traverseImage(faImageFilter -> GetOutput(), paImage, trackerImage, currLoc, delta, iter);
 
+  // work on segmented seed voxel
 
+  imageWriter<PAImageType>(paImage, argv[3]);
+  imageWriter<BaseImageType>(faImageFilter->GetOutput(), argv[4]);
+  imageWriter<BaseImageType>(trackerImage, argv[5]);
+  
   // Done.
   return 0 ;
 }
