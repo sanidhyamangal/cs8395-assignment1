@@ -77,14 +77,27 @@ int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, 
 
 }
 
+template <class ImageType>
+none imageWriter(ImageType::Pointer image, char* filename) {
+
+  // create an ITK file writer
+  typedef itk::ImageFileWriter <ImageType> ImageFileWriterType;
+  ImageFileWriterType::Pointer myFileWriter = ImageFileWriterType::New();
+
+  // perform ops for writing the image
+  myFileWriter -> SetFileName(filename);
+  myFileWriter -> SetInput(image);
+  myFileWriter -> Update();
+
+}
 
 int main ( int argc, char * argv[] )
 {
   // --- Verify command line arguments----//
-  if( argc < 6 )
+  if( argc < 5 )
     {
       std::cerr << "Usage: " << std::endl ;
-      std::cerr << argv[0] << " inputFileImage inputSegmentFile outputEigenVecFile outputFAImage outputSegmentTrackFile" << std::endl ; 
+      std::cerr << argv[0] << " inputFileImage outputEigenVecFile outputFAImage outputTrackerFile" << std::endl ; 
       return -1 ;
     }
 
@@ -187,17 +200,22 @@ int main ( int argc, char * argv[] )
   traverseImage(faImageFilter -> GetOutput(), paImage, trackerImage, currLoc, delta, iter);
 
   // work on segmented seed voxel
-  typedef itk::ImageFileWriter < PAImageType> ImageWriterType1 ;   
-  ImageWriterType1 ::Pointer myWriter1 = ImageWriterType1::New();   
-  myWriter1->SetFileName( argv[3] );   
-  myWriter1->SetInput(paImage);  
-  myWriter1->Update();   
 
-  typedef itk::ImageFileWriter < BaseImageType> ImageWriterType2 ;   
-  ImageWriterType2 ::Pointer myWriter2 = ImageWriterType2::New();   
-  myWriter2->SetFileName( argv[4] );   
-  myWriter2->SetInput(faImageFilter->GetOutput() );  
-  myWriter2->Update();   
+  imageWriter<PAImageType>(paImage, argv[3]);
+  imageWriter<BaseImageType>(faImageFilter->GetOutput()m argv[4]);
+  // imageWriter<BaseImageType>(trackerImage, argv[5])
+
+  // typedef itk::ImageFileWriter < PAImageType> ImageWriterType1 ;   
+  // ImageWriterType1 ::Pointer myWriter1 = ImageWriterType1::New();   
+  // myWriter1->SetFileName( argv[3] );   
+  // myWriter1->SetInput(paImage);  
+  // myWriter1->Update();   
+
+  // typedef itk::ImageFileWriter < BaseImageType> ImageWriterType2 ;   
+  // ImageWriterType2 ::Pointer myWriter2 = ImageWriterType2::New();   
+  // myWriter2->SetFileName( argv[4] );   
+  // myWriter2->SetInput(faImageFilter->GetOutput() );  
+  // myWriter2->Update();   
 
   // typedef itk::ImageFileWriter < BaseImageType> ImageWriterType3 ;   
   // ImageWriterType3 ::Pointer myWriter3 = ImageWriterType3::New();   
