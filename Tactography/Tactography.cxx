@@ -27,6 +27,7 @@ int main ( int argc, char * argv[] )
     typedef itk::DiffusionTensor3D <double> TensorType;
     typedef itk::Image <TensorType, nDims> TensorImageType;
     typedef itk::Image <double, nDims> ImageType;
+    typedef itk::ImageFileReader <TensorImageType> TensorImageFileReader;
     typedef itk::ImageFileReader <ImageType> ImageFileReader;
     typedef itk::Vector <double, nDims> VectorType;
     typedef itk::Image <VectorType, nDims> PAImageType;
@@ -39,7 +40,7 @@ int main ( int argc, char * argv[] )
 
 
     // load input image for the processing
-    ImageFileReader::Pointer imgReader = ImageFileReader::New();
+    TensorImageFileReader::Pointer imgReader = TensorImageFileReader::New();
     imgReader -> SetFileName(argv[1]);
     imgReader -> Update();
     TensorImageType::Pointer img = imgReader -> GetOutput();
