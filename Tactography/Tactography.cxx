@@ -205,26 +205,8 @@ int main ( int argc, char * argv[] )
 
   imageWriter<PAImageType>(paImage, argv[3]);
   imageWriter<BaseImageType>(faImageFilter->GetOutput(), argv[4]);
-  // imageWriter<BaseImageType>(trackerImage, argv[5])
-
-  // typedef itk::ImageFileWriter < PAImageType> ImageWriterType1 ;   
-  // ImageWriterType1 ::Pointer myWriter1 = ImageWriterType1::New();   
-  // myWriter1->SetFileName( argv[3] );   
-  // myWriter1->SetInput(paImage);  
-  // myWriter1->Update();   
-
-  // typedef itk::ImageFileWriter < BaseImageType> ImageWriterType2 ;   
-  // ImageWriterType2 ::Pointer myWriter2 = ImageWriterType2::New();   
-  // myWriter2->SetFileName( argv[4] );   
-  // myWriter2->SetInput(faImageFilter->GetOutput() );  
-  // myWriter2->Update();   
-
-  // typedef itk::ImageFileWriter < BaseImageType> ImageWriterType3 ;   
-  // ImageWriterType3 ::Pointer myWriter3 = ImageWriterType3::New();   
-  // myWriter3->SetFileName( argv[5] );   
-  // myWriter3->SetInput(trackerImage );  
-  // myWriter3->Update();
-
+  imageWriter<BaseImageType>(trackerImage, argv[5]);
+  
   // Done.
   return 0 ;
 }
