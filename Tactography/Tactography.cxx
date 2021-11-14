@@ -19,10 +19,11 @@ typedef itk::ImageRegionIterator < ImageType > InputImageIterator ;
 typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
 typedef itk::TensorFractionalAnisotropyImageFilter <ImageType, BaseImageType> FAImageFilterType;
 
-
+// Function to return the new index for the tracker
 ImageType::IndexType computeNewIdx(VectorType thisVector, double delta, ImageType::IndexType currLoc, bool sign){
   ImageType::IndexType newLoc = currLoc;
 
+  // check if forward side of index required or something different
   if (sign){
     newLoc[0] = round(thisVector[0]*delta + currLoc[0]);
     newLoc[1] = round(thisVector[1]*delta + currLoc[1]);
@@ -68,6 +69,7 @@ int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, 
   VectorType thisVector ;
   thisVector = paImage->GetPixel(curLoc);
 
+  // find the new set of forward and backward indexes to call the function
   ImageType::IndexType forward = computeNewIdx(thisVector, delta, curLoc, true);
   ImageType::IndexType backward = computeNewIdx(thisVector, delta, curLoc, true);
 
@@ -77,6 +79,8 @@ int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, 
 
 }
 
+// a generic file writer class which takes image pointer and filename as input
+// and writes the file to it.
 template <class ImageType>
 int imageWriter(typename ImageType::Pointer image, char* filename) {
 
@@ -131,6 +135,7 @@ int main ( int argc, char * argv[] )
   trackerImage->SetRegions(newRegion);
   trackerImage->Allocate() ;
 
+  // ---- EigenValue and FA computation ------//
 
   // define PA image for other ops such as eigen value computation
   PAImageType::Pointer paImage = PAImageType::New() ;
@@ -196,17 +201,18 @@ int main ( int argc, char * argv[] )
   unsigned int iter=0;
   double delta = 0.9;
 
+
+  // define location of the seed
   ImageType::IndexType currLoc = seed;
   ImageType::IndexType newLoc = seed;
 
+  // start image traversal for the images
   traverseImage(faImageFilter -> GetOutput(), paImage, trackerImage, currLoc, delta, iter);
-
-  // work on segmented seed voxel
 
   imageWriter<PAImageType>(paImage, argv[3]);
   imageWriter<BaseImageType>(faImageFilter->GetOutput(), argv[4]);
   imageWriter<BaseImageType>(trackerImage, argv[5]);
-  
+
   // Done.
   return 0 ;
 }
