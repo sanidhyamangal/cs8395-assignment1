@@ -82,7 +82,7 @@ none imageWriter(ImageType::Pointer image, char* filename) {
 
   // create an ITK file writer
   typedef itk::ImageFileWriter <ImageType> ImageFileWriterType;
-  ImageFileWriterType::Pointer myFileWriter = ImageFileWriterType::New();
+  typename ImageFileWriterType::Pointer myFileWriter = ImageFileWriterType::New();
 
   // perform ops for writing the image
   myFileWriter -> SetFileName(filename);
