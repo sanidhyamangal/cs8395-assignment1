@@ -79,71 +79,37 @@ int main ( int argc, char * argv[] )
     PAImageIteratorType paImageIterator (paImage, newRegion);
     ImageIteratorType inputImageIterator(img, newRegion);
 
-
-  typedef itk::ImageRegionIterator < ImageType > InputIteratorType ;
-  typedef itk::ImageRegionIterator < PAImageType > OutputIteratorType ;
-
-  PAImageType::Pointer myPAImage = PAImageType::New() ;
-  myPAImage->SetOrigin(myImage->GetOrigin() ) ;
-  myPAImage->SetDirection(myImage->GetDirection() );
-  myPAImage->SetSpacing(myImage->GetSpacing() );
-  myPAImage->SetRegions(newRegion);
-  myPAImage->Allocate() ;
-
-  OutputIteratorType outputIterator (myPAImage, newRegion);
-  InputIteratorType inputIterator (img, newRegion);
-  outputIterator.GoToBegin ();
-  inputIterator.GoToBegin () ;
-  DiffTensorType thisTensor ;
-  DiffTensorType::EigenValuesArrayType myEVAT;
-  DiffTensorType::EigenVectorsMatrixType myEVMT ;
-  VectorType thisVector ;
-
-  while (!outputIterator.IsAtEnd() )
-  {
-   thisTensor =  inputIterator.Value() ;
-   thisTensor.ComputeEigenAnalysis(myEVAT, myEVMT) ;
-   thisVector[0] = myEVMT[2][0]*1 ; thisVector[1] = myEVMT[2][1]*1 ; thisVector[2] = myEVMT[2][2]*1 ; // Principal axis vector
-
-   if (myEVMT[2][2] == 1) { 
-     thisVector[0] = 0; thisVector[1] = 0; thisVector[2] = 0; //Change zero tensor to 0 Principal Vector Direction
-   }
-   outputIterator.Set(thisVector) ;
-   ++outputIterator ;
-   ++inputIterator ;
-  }
-
-    // // go to begin of the image iterate
-    // paImageIterator.GoToBegin();
-    // inputImageIterator.GoToBegin();
+    // go to begin of the image iterate
+    paImageIterator.GoToBegin();
+    inputImageIterator.GoToBegin();
     
-    // // compute eigenvals and eigne vectors for the image
-    // while (!paImageIterator.IsAtEnd())
-    // {
-    //   thisTensor = inputImageIterator.Value();
+    // compute eigenvals and eigne vectors for the image
+    while (!paImageIterator.IsAtEnd())
+    {
+      thisTensor = inputImageIterator.Value();
 
-    //   thisTensor.ComputeEigenAnalysis(eigenValArrayType, eigenValMatrixType);
+      thisTensor.ComputeEigenAnalysis(eigenValArrayType, eigenValMatrixType);
 
-    //   // assign eigen val and vector to the tensor
-    //   thisVector[0]=eigenValMatrixType[2][0] * 1;
-    //   thisVector[1]=eigenValMatrixType[2][1] * 1;
-    //   thisVector[2]=eigenValMatrixType[2][2] * 1;
+      // assign eigen val and vector to the tensor
+      thisVector[0]=eigenValMatrixType[2][0] * 1;
+      thisVector[1]=eigenValMatrixType[2][1] * 1;
+      thisVector[2]=eigenValMatrixType[2][2] * 1;
 
-    //   // clip the vector if its zero i.e. matrixval[2][2] = 1
-    //   if (eigenValMatrixType[2][2] == 1)
-    //   {
-    //     thisVector[0]=0;
-    //     thisVector[1]=0;
-    //     thisVector[2]=0;
-    //   }
+      // clip the vector if its zero i.e. matrixval[2][2] = 1
+      if (eigenValMatrixType[2][2] == 1)
+      {
+        thisVector[0]=0;
+        thisVector[1]=0;
+        thisVector[2]=0;
+      }
 
-    //   // update iterator value to this vector direction
-    //   paImageIterator.Set(thisVector)
+      // update iterator value to this vector direction
+      paImageIterator.Set(thisVector)
 
-    //   // increment iterators
-    //   ++paImageIterator;
-    //   ++inputImageIterator;
-    // }
+      // increment iterators
+      ++paImageIterator;
+      ++inputImageIterator;
+    }
     
 
     // Done
