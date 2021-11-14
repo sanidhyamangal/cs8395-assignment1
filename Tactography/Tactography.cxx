@@ -17,6 +17,10 @@ typedef itk::Image < double, nDims> BaseImageType ;
 typedef itk::ImageFileReader < ImageType > TensorImageFileReaderType ;
 typedef itk::ImageRegionIterator < ImageType > InputImageIterator ;
 typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
+typedef itk::TensorFractionalAnisotropyImageFilter <ImageType, BaseImageType> FAImageFilterType;
+
+
+
 TensorType thisTensor ;
 TensorType::EigenValuesArrayType eigenValArrayType;
 TensorType::EigenVectorsMatrixType eigenValMatrixType ;
@@ -89,6 +93,12 @@ int main ( int argc, char * argv[] )
    ++inputImageIterator ;
   }
 
+  // compute FA for the image
+  FAImageFilterType::Pointer faImageFilter = FAImageFilterType::New();
+  // pass input image as input
+  faImageFilter -> SetInput(img);
+  faImageFilter -> Update(); // go read
+  
   // Done.
   return 0 ;
 }
