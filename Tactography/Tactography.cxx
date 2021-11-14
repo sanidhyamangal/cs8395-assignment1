@@ -107,7 +107,7 @@ int main ( int argc, char * argv[] )
       paImageIterator.Set(thisVector)
 
       // increment iterators
-      ++paImageIterator;
+      // ++paImageIterator;
       ++inputImageIterator;
     }
     
