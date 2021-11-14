@@ -14,6 +14,7 @@ typedef itk::Image < TensorType , nDims > ImageType ;
 typedef itk::Vector <double, nDims> VectorType;
 typedef itk::Image <VectorType, nDims> PAImageType ;
 typedef itk::Image < double, nDims> BaseImageType ;
+typedef itk::TensorImageFileReader < ImageType > TensorImageImageReaderType ;
 
 int main ( int argc, char * argv[] )
 {
@@ -30,8 +31,7 @@ int main ( int argc, char * argv[] )
 
   
   //---Read Input Images---//
-  typedef itk::TensorImageFileReader < ImageType > TensorImageReaderType ;
-  TensorImageFileReader ::Pointer inputFileReader = TensorImageReaderType ::New() ;  
+  TensorImageFileReader ::Pointer inputFileReader = TensorImageImageReaderType ::New() ;  
   inputFileReader->SetFileName ( argv[1] ) ;
   inputFileReader->Update();   // go read
   ImageType::Pointer img = inputFileReader->GetOutput();
@@ -77,7 +77,7 @@ int main ( int argc, char * argv[] )
      thisVector[1] = 0; 
      thisVector[2] = 0; //Change zero tensor to 0 Principal Vector Direction
    }
-   
+
    paIterator.Set(thisVector) ;
    ++paIterator ;
    ++inputImageIterator ;
