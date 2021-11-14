@@ -24,11 +24,11 @@ int main ( int argc, char * argv[] )
     const unsigned int nDims = 3;
 
     // define tensor type and image type 
-    typedef itk::DiffusionTensor3D <float> TensorType;
+    typedef itk::DiffusionTensor3D <double> TensorType;
     typedef itk::Image <TensorType, nDims> TensorImageType;
-    typedef itk::Image <float, nDims> ImageType;
+    typedef itk::Image <double, nDims> ImageType;
     typedef itk::ImageFileReader <ImageType> ImageFileReader;
-    typedef itk::Image <float, nDims> VectorType;
+    typedef itk::Image <double, nDims> VectorType;
     typedef itk::Image <VectorType, nDims> PAImageType;
 
     // define eigne value matrix and eigenvalue array along with vector and tensortype
