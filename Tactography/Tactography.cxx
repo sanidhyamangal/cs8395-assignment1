@@ -190,7 +190,7 @@ int main ( int argc, char * argv[] )
   typedef itk::ImageFileWriter < PAImageType> ImageWriterType1 ;   
   ImageWriterType1 ::Pointer myWriter1 = ImageWriterType1::New();   
   myWriter1->SetFileName( argv[3] );   
-  myWriter1->SetInput(myPAImage);  
+  myWriter1->SetInput(paImage);  
   myWriter1->Update();   
 
   typedef itk::ImageFileWriter < BaseImageType> ImageWriterType2 ;   
