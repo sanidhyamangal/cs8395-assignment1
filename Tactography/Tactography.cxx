@@ -41,6 +41,8 @@ int main ( int argc, char * argv[] )
     // define iters for the image and PAImageType
     typedef itk::ImageRegionIterator <TensorImageType> ImageIteratorType;
     typedef itk::ImageRegionIterator <PAImageType> PAImageIteratorType;
+    typedef itk::ImageRegionIterator < TensorImageType > InputIteratorType ;
+    typedef itk::ImageRegionIterator < PAImageType > OutputIteratorType ;
 
 
     // load input image for the processing
@@ -76,8 +78,8 @@ int main ( int argc, char * argv[] )
 
 
     // iterate through the input image and PA image
-    PAImageIteratorType paImageIterator (paImage, newRegion);
-    ImageIteratorType inputImageIterator(img, newRegion);
+    OutputImageIterator paImageIterator (paImage, newRegion);
+    InputImageIterator inputImageIterator(img, newRegion);
 
     // go to begin of the image iterate
     paImageIterator.GoToBegin();
@@ -107,7 +109,7 @@ int main ( int argc, char * argv[] )
       paImageIterator.Set(thisVector)
 
       // increment iterators
-      // ++paImageIterator;
+      ++paImageIterator;
       ++inputImageIterator;
     }
     
