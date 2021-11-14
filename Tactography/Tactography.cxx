@@ -186,6 +186,24 @@ int main ( int argc, char * argv[] )
 
   traverseImage(faImageFilter -> GetOutput(), paImage, trackerImage, currLoc, delta, iter);
 
+  // work on segmented seed voxel
+  typedef itk::ImageFileWriter < PAImageType> ImageWriterType1 ;   
+  ImageWriterType1 ::Pointer myWriter1 = ImageWriterType1::New();   
+  myWriter1->SetFileName( argv[3] );   
+  myWriter1->SetInput(myPAImage);  
+  myWriter1->Update();   
+
+  typedef itk::ImageFileWriter < BaseImageType> ImageWriterType2 ;   
+  ImageWriterType2 ::Pointer myWriter2 = ImageWriterType2::New();   
+  myWriter2->SetFileName( argv[4] );   
+  myWriter2->SetInput(faImageFilter->GetOutput() );  
+  myWriter2->Update();   
+
+  // typedef itk::ImageFileWriter < BaseImageType> ImageWriterType3 ;   
+  // ImageWriterType3 ::Pointer myWriter3 = ImageWriterType3::New();   
+  // myWriter3->SetFileName( argv[5] );   
+  // myWriter3->SetInput(trackerImage );  
+  // myWriter3->Update();
 
   // Done.
   return 0 ;
