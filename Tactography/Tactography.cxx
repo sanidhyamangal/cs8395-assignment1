@@ -116,33 +116,33 @@ int main ( int argc, char * argv[] )
     // inputImageIterator.GoToBegin();
     
     // compute eigenvals and eigne vectors for the image
-    while (!paImageIterator.IsAtEnd())
-    {
-      thisTensor = inputImageIterator.Value();
+    // while (!paImageIterator.IsAtEnd())
+    // {
+    //   thisTensor = inputImageIterator.Value();
 
-      thisTensor.ComputeEigenAnalysis(eigenValArrayType, eigenValMatrixType);
+    //   thisTensor.ComputeEigenAnalysis(eigenValArrayType, eigenValMatrixType);
 
-      // assign eigen val and vector to the tensor
-      thisVector[0]=eigenValMatrixType[2][0] * 1;
-      thisVector[1]=eigenValMatrixType[2][1] * 1;
-      thisVector[2]=eigenValMatrixType[2][2] * 1;
+    //   // assign eigen val and vector to the tensor
+    //   thisVector[0]=eigenValMatrixType[2][0] * 1;
+    //   thisVector[1]=eigenValMatrixType[2][1] * 1;
+    //   thisVector[2]=eigenValMatrixType[2][2] * 1;
 
-      // clip the vector if its zero i.e. matrixval[2][2] = 1
-      if (eigenValMatrixType[2][2] == 1)
-      {
-        thisVector[0]=0;
-        thisVector[1]=0;
-        thisVector[2]=0;
-      }
+    //   // clip the vector if its zero i.e. matrixval[2][2] = 1
+    //   if (eigenValMatrixType[2][2] == 1)
+    //   {
+    //     thisVector[0]=0;
+    //     thisVector[1]=0;
+    //     thisVector[2]=0;
+    //   }
 
-      // update iterator value to this vector direction
-      paImageIterator.Set(thisVector)
+    //   // update iterator value to this vector direction
+    //   paImageIterator.Set(thisVector)
 
-      // increment iterators 
-      // TODO: Look into it after the entire code
-      // ++paImageIterator ;
-      // ++inputImageIterator ;
-    }
+    //   // increment iterators 
+    //   // TODO: Look into it after the entire code
+    //   // ++paImageIterator ;
+    //   // ++inputImageIterator ;
+    // }
     
 
     // Done
