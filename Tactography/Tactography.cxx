@@ -35,7 +35,7 @@ int main ( int argc, char * argv[] )
     TensorImageType thisTensor;
     VectorType thisVector;
     TensorType::EigenValuesArrayType eigenValArrayType;
-    TensorType::EigenValuesMatrixType eigenValMatrixType;
+    TensorType::EigenVectorsMatrixType eigenValMatrixType;
 
 
     // load input image for the processing
