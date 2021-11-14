@@ -30,7 +30,7 @@ int main ( int argc, char * argv[] )
 
   
   //---Read Input Images---//
-  typedef itk::TensorImageFileReader < ImageType > TensorImageFileReaderType ;
+  typedef itk::ImageFileReader < ImageType > TensorImageFileReaderType ;
   TensorImageFileReader ::Pointer inputFileReader = TensorImageFileReaderType ::New() ;  
   inputFileReader->SetFileName ( argv[1] ) ;
   inputFileReader->Update();   // go read
