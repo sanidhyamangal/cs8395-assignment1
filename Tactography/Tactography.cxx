@@ -202,7 +202,7 @@ int main ( int argc, char * argv[] )
   // work on segmented seed voxel
 
   imageWriter<PAImageType>(paImage, argv[3]);
-  imageWriter<BaseImageType>(faImageFilter->GetOutput()m argv[4]);
+  imageWriter<BaseImageType>(faImageFilter->GetOutput(), argv[4]);
   // imageWriter<BaseImageType>(trackerImage, argv[5])
 
   // typedef itk::ImageFileWriter < PAImageType> ImageWriterType1 ;   
