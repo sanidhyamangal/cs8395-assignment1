@@ -14,7 +14,7 @@ typedef itk::Image < TensorType , nDims > ImageType ;
 typedef itk::Vector <double, nDims> VectorType;
 typedef itk::Image <VectorType, nDims> PAImageType ;
 typedef itk::Image < double, nDims> BaseImageType ;
-typedef itk::TensorImageFileReader < ImageType > TensorImageImageReaderType ;
+typedef itk::TensorImageFileReader < ImageType > TensorImageFileReaderType ;
 
 int main ( int argc, char * argv[] )
 {
@@ -31,7 +31,7 @@ int main ( int argc, char * argv[] )
 
   
   //---Read Input Images---//
-  TensorImageFileReader ::Pointer inputFileReader = TensorImageImageReaderType ::New() ;  
+  TensorImageFileReaderType ::Pointer inputFileReader = TensorImageFileReaderType ::New() ;  
   inputFileReader->SetFileName ( argv[1] ) ;
   inputFileReader->Update();   // go read
   ImageType::Pointer img = inputFileReader->GetOutput();
