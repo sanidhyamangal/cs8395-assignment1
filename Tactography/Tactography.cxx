@@ -164,12 +164,12 @@ int traverseImage(FAImageFilterType::Pointer faImage, PAImageType::Pointer paIma
   }
 
   // if location is already visited
-  if (trackerImage -> GetPixel() == 1){
+  if (trackerImage -> GetPixel(curLoc) == 1){
     return 0;
   }
 
   // if the eigen value is less then FA val
-  if (faImage -> GetPixel() < .2) {
+  if (faImage -> GetPixel(curLoc) < 0.2) {
     return 0;
   }
 
