@@ -9,55 +9,11 @@
 
 //---Image Typedefs--//
 const unsigned int nDims = 3 ;   // Setup types
-typedef itk::DiffusionTensor3D < double > DiffTensorType ;
-typedef itk::Image < DiffTensorType , nDims > ImageType ;
+typedef itk::DiffusionTensor3D < double > TensorType ;
+typedef itk::Image < TensorType , nDims > ImageType ;
 typedef itk::Vector <double, nDims> VectorType;
 typedef itk::Image <VectorType, nDims> PAImageType ;
-typedef itk::Image < double, nDims> FAImageType ;
-typedef itk::Image < double, nDims> TrackImageType ;
-typedef itk::Image < double, nDims> SegmentedImageType ;
-
-
-int RecursiveTrack(PAImageType::Pointer myPAImage, FAImageType::Pointer myFAImage, TrackImageType::Pointer myTrackImage, ImageType::IndexType thisloc, double delta, int iter)
-{
-  // Check Stopping Conditions
-  if (!myTrackImage->GetLargestPossibleRegion().IsInside(thisloc)) { //Voxel outside of image
-    return 0;
-  }
-  if (myTrackImage->GetPixel(thisloc) == 1.0) { //Voxel already visited
-    return 0 ;
-  }
-  if (myFAImage->GetPixel(thisloc) < 0.25) { //Voxel below minFA
-    return 0;
-  }
-  if (iter > 1000) { //Surpassed maximum iterations
-    return 0;
-  }
-
-  // If Stopping conditions pass, set voxel intensity
-  myTrackImage->SetPixel(thisloc , 1.0) ;
-  //std::cout << iter << std::endl;
-  iter++;
-
-  // Get next forward and back pixel
-  ImageType::IndexType newlocplus = thisloc ;
-  ImageType::IndexType newlocneg = thisloc ;
-  
-  VectorType thisVector ;
-  thisVector = myPAImage->GetPixel(thisloc);
-  newlocplus [0] = round(thisVector[0]*delta + thisloc[0]);
-  newlocplus [1] = round(thisVector[1]*delta + thisloc[1]);
-  newlocplus [2] = round(thisVector[2]*delta + thisloc[2]);
-  RecursiveTrack(myPAImage, myFAImage, myTrackImage, newlocplus, delta, iter);
-  
-  newlocneg [0] = round(-thisVector[0]*delta + thisloc[0]);
-  newlocneg [1] = round(-thisVector[1]*delta + thisloc[1]);
-  newlocneg [2] = round(-thisVector[2]*delta + thisloc[2]);
-  RecursiveTrack(myPAImage, myFAImage, myTrackImage, newlocneg , delta, iter);
-
-  return 0;
-}
-
+typedef itk::Image < double, nDims> BaseImageType ;
 
 int main ( int argc, char * argv[] )
 {
@@ -74,60 +30,59 @@ int main ( int argc, char * argv[] )
 
   
   //---Read Input Images---//
-  typedef itk::ImageFileReader < ImageType > ImageReaderType1 ;
-  ImageReaderType1 ::Pointer myReader1 = ImageReaderType1 ::New() ;  
-  myReader1->SetFileName ( argv[1] ) ;
-  myReader1->Update();   // go read
-  ImageType::Pointer myImage = myReader1->GetOutput();
-
-  typedef itk::ImageFileReader < SegmentedImageType > ImageReaderType2 ;
-  ImageReaderType2 ::Pointer myReader2 = ImageReaderType2::New() ;  
-  myReader2 ->SetFileName ( argv[2] ) ;
-  myReader2 ->Update();   // go read
-  SegmentedImageType::Pointer SegmentedCCImage = myReader2->GetOutput();
+  typedef itk::TensorImageFileReader < ImageType > TensorImageReaderType ;
+  TensorImageFileReader ::Pointer inputFileReader = TensorImageReaderType ::New() ;  
+  inputFileReader->SetFileName ( argv[1] ) ;
+  inputFileReader->Update();   // go read
+  ImageType::Pointer img = inputFileReader->GetOutput();
 
 
   //---(2) Compute principal eigenvector---//
-  ImageType::RegionType myCustomRegion;
-  ImageType::SizeType size = myImage->GetLargestPossibleRegion().GetSize() ;
-  ImageType::IndexType corner ;
-  corner[0] = 0; corner[1] = 0; corner[2] = 0;
-  //std::cout << "Size: "<< size << std::endl;
-  myCustomRegion.SetSize( size ) ;
-  myCustomRegion.SetIndex( corner ) ;
-  typedef itk::ImageRegionIterator < ImageType > InputIteratorType ;
-  typedef itk::ImageRegionIterator < PAImageType > OutputIteratorType ;
+  ImageType::RegionType newRegion;
+  ImageType::SizeType size = img->GetLargestPossibleRegion().GetSize() ;
+  ImageType::IndexType starter ;
+  starter[0] = 0; starter[1] = 0; starter[2] = 0;
 
-  PAImageType::Pointer myPAImage = PAImageType::New() ;
-  myPAImage->SetOrigin(myImage->GetOrigin() ) ;
-  myPAImage->SetDirection(myImage->GetDirection() );
-  myPAImage->SetSpacing(myImage->GetSpacing() );
-  myPAImage->SetRegions(myCustomRegion);
-  myPAImage->Allocate() ;
+  newRegion.SetSize( size ) ;
+  newRegion.SetIndex( starter ) ;
+  typedef itk::ImageRegionIterator < ImageType > InputImageIterator ;
+  typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
 
-  OutputIteratorType outputIterator (myPAImage, myCustomRegion);
-  InputIteratorType inputIterator (myImage, myCustomRegion);
-  outputIterator.GoToBegin ();
-  inputIterator.GoToBegin () ;
-  DiffTensorType thisTensor ;
-  DiffTensorType::EigenValuesArrayType myEVAT;
-  DiffTensorType::EigenVectorsMatrixType myEVMT ;
+  PAImageType::Pointer paImage = PAImageType::New() ;
+  paImage->SetOrigin(img->GetOrigin() ) ;
+  paImage->SetDirection(img->GetDirection() );
+  paImage->SetSpacing(img->GetSpacing() );
+  paImage->SetRegions(newRegion);
+  paImage->Allocate() ;
+
+  PAImageIterator paIterator (paImage, newRegion);
+  InputImageIterator inputImageIterator (img, newRegion);
+  paIterator.GoToBegin ();
+  inputImageIterator.GoToBegin () ;
+  TensorType thisTensor ;
+  TensorType::EigenValuesArrayType eigenValArrayType;
+  TensorType::EigenVectorsMatrixType eigenValMatrixType ;
   VectorType thisVector ;
 
-  while (!outputIterator.IsAtEnd() )
+  while (!paIterator.IsAtEnd() )
   {
-   thisTensor =  inputIterator.Value() ;
-   thisTensor.ComputeEigenAnalysis(myEVAT, myEVMT) ;
-   thisVector[0] = myEVMT[2][0]*1 ; thisVector[1] = myEVMT[2][1]*1 ; thisVector[2] = myEVMT[2][2]*1 ; // Principal axis vector
+   thisTensor =  inputImageIterator.Value() ;
+   thisTensor.ComputeEigenAnalysis(eigenValArrayType, eigenValMatrixType) ;
+   thisVector[0] = eigenValMatrixType[2][0]*1 ; 
+   thisVector[1] = eigenValMatrixType[2][1]*1 ; 
+   thisVector[2] = eigenValMatrixType[2][2]*1 ; // Principal axis vector
 
-   if (myEVMT[2][2] == 1) { 
-     thisVector[0] = 0; thisVector[1] = 0; thisVector[2] = 0; //Change zero tensor to 0 Principal Vector Direction
+   if (eigenValMatrixType[2][2] == 1) { 
+     thisVector[0] = 0; 
+     thisVector[1] = 0; 
+     thisVector[2] = 0; //Change zero tensor to 0 Principal Vector Direction
    }
-   outputIterator.Set(thisVector) ;
-   ++outputIterator ;
-   ++inputIterator ;
+   
+   paIterator.Set(thisVector) ;
+   ++paIterator ;
+   ++inputImageIterator ;
   }
-  
+
   // Done.
   return 0 ;
 }
