@@ -20,11 +20,63 @@ typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
 typedef itk::TensorFractionalAnisotropyImageFilter <ImageType, BaseImageType> FAImageFilterType;
 
 
+ImageType::IndexType computeNewIdx(VectorType thisVector, double delta, ImageType::IndexType currLoc, bool sign){
+  ImageType::IndexType newLoc = currLoc;
 
-TensorType thisTensor ;
-TensorType::EigenValuesArrayType eigenValArrayType;
-TensorType::EigenVectorsMatrixType eigenValMatrixType ;
-VectorType thisVector ;
+  if (sign){
+    newLoc[0] = round(thisVector[0]*delta + currLoc[0]);
+    newLoc[1] = round(thisVector[1]*delta + currLoc[1]);
+    newLoc[2] = round(thisVector[2]*delta + currLoc[2]);
+
+    return newLoc;
+  }
+
+  // return for negative
+  newLoc[0] = round(-thisVector[0]*delta + currLoc[0]);
+  newLoc[1] = round(-thisVector[1]*delta + currLoc[1]);
+  newLoc[2] = round(-thisVector[2]*delta + currLoc[2]);
+  
+  return newLoc;
+}
+
+int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, BaseImageType::Pointer trackerImage, ImageType::IndexType curLoc ,double delta, int iter){
+  // stopping conditions
+  // if location is outside of the image
+  if (!trackerImage -> GetLargestPossibleRegion().IsInside(curLoc)){
+    return 0;
+  }
+
+  // if iter is greater than 1000
+  if (iter > 1000){
+    return 0;
+  }
+
+  // if location is already visited
+  if (trackerImage -> GetPixel(curLoc) == 1){
+    return 0;
+  }
+
+  // if the eigen value is less then FA val
+  if (faImage -> GetPixel(curLoc) < 0.2) {
+    return 0;
+  }
+
+  // mark the pixel in tracker image as visited
+  trackerImage -> SetPixel(curLoc, 1.0);
+  iter++;
+
+  VectorType thisVector ;
+  thisVector = paImage->GetPixel(curLoc);
+
+  ImageType::IndexType forward = computeNewIdx(thisVector, delta, curLoc, true);
+  ImageType::IndexType backward = computeNewIdx(thisVector, delta, curLoc, true);
+
+  // make recursive calls to track image
+  traverseImage(faImage, paImage, trackerImage, forward, delta, iter);
+  traverseImage(faImage, paImage, trackerImage, backward, delta, iter);
+
+}
+
 
 int main ( int argc, char * argv[] )
 {
@@ -54,15 +106,31 @@ int main ( int argc, char * argv[] )
 
   newRegion.SetSize( size ) ;
   newRegion.SetIndex( origin ) ;
+  
+
+  // create a tracker image for the segmentation of the index it would be used later
+  BaseImageType::Pointer trackerImage = BaseImageType::New() ;
+  trackerImage->SetOrigin(img->GetOrigin() ) ;
+  trackerImage->SetDirection(img->GetDirection() );
+  trackerImage->SetSpacing(img->GetSpacing() );
+  trackerImage->SetRegions(newRegion);
+  trackerImage->Allocate() ;
 
 
-  // define PA image for other ops
+  // define PA image for other ops such as eigen value computation
   PAImageType::Pointer paImage = PAImageType::New() ;
   paImage->SetOrigin(img->GetOrigin() ) ;
   paImage->SetDirection(img->GetDirection() );
   paImage->SetSpacing(img->GetSpacing() );
   paImage->SetRegions(newRegion);
   paImage->Allocate() ;
+
+
+  // define tensors and vectors to store eigen val and vector
+  TensorType thisTensor ;
+  TensorType::EigenValuesArrayType eigenValArrayType;
+  TensorType::EigenVectorsMatrixType eigenValMatrixType ;
+  VectorType thisVector ;
 
   PAImageIterator paIterator (paImage, newRegion);
   InputImageIterator inputImageIterator (img, newRegion);
@@ -97,9 +165,28 @@ int main ( int argc, char * argv[] )
   FAImageFilterType::Pointer faImageFilter = FAImageFilterType::New();
   // pass input image as input
   faImageFilter -> SetInput(img);
-  faImageFilter -> Update(); // go read
-  
+  faImageFilter -> Update();
+
+
+  //------Voxel Tracking ------//
+
+  // define random seed
+  ImageType::IndexType seed;
+
+  seed[0] = 69;
+  seed[1] = 75;
+  seed[2] = 31;
+
+  // define hyperparms for tracking the inputs
+  unsigned int iter=0;
+  double delta = 0.9;
+
+  ImageType::IndexType currLoc = seed;
+  ImageType::IndexType newLoc = seed;
+
+  traverseImage(faImageFilter -> GetOutput(), paImage, trackerImage, currLoc, delta, iter);
+
+
   // Done.
   return 0 ;
 }
-
