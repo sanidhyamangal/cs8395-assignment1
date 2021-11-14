@@ -39,7 +39,7 @@ ImageType::IndexType computeNewIdx(VectorType thisVector, double delta, ImageTyp
   return newLoc;
 }
 
-int traverseImage(FAImageFilterType::Pointer faImage, PAImageType::Pointer paImage, BaseImageType::Pointer trackerImage, ImageType::IndexType curLoc ,double delta, int iter){
+int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, BaseImageType::Pointer trackerImage, ImageType::IndexType curLoc ,double delta, int iter){
   // stopping conditions
   // if location is outside of the image
   if (!trackerImage -> GetLargestPossibleRegion().IsInside(curLoc)){
@@ -165,7 +165,8 @@ int main ( int argc, char * argv[] )
   FAImageFilterType::Pointer faImageFilter = FAImageFilterType::New();
   // pass input image as input
   faImageFilter -> SetInput(img);
-  faImageFilter -> Update(); // go read
+  faImageFilter -> Update();
+
 
   //------Voxel Tracking ------//
 
