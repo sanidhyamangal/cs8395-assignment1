@@ -40,8 +40,8 @@ int main ( int argc, char * argv[] )
 
     // load input image for the processing
     ImageFileReader::Pointer imgReader = ImageFileReader::New();
-    inputFile -> SetFileName(argv[1]);
-    TensorImageType::Pointer img = inputFile -> GetOutput();
+    imgReader -> SetFileName(argv[1]);
+    TensorImageType::Pointer img = imgReader -> GetOutput();
     TensorImageType::RegionType region = img -> GetLargestPossibleRegion();
     TensorImageType::SizeType size = region.GetSize();
 
@@ -89,9 +89,9 @@ int main ( int argc, char * argv[] )
       thisTensor.ComputeEigenAnalysis(eigenValArrayType, eigenValMatrixType);
 
       // assign eigen val and vector to the tensor
-      thisVector[0]=eigneValMatrixType[2][0] * 1;
-      thisVector[1]=eigneValMatrixType[2][1] * 1;
-      thisVector[2]=eigneValMatrixType[2][2] * 1;
+      thisVector[0]=eigenValMatrixType[2][0] * 1;
+      thisVector[1]=eigenValMatrixType[2][1] * 1;
+      thisVector[2]=eigenValMatrixType[2][2] * 1;
 
       // clip the vector if its zero i.e. matrixval[2][2] = 1
       if (eigenValMatrixType[2][2] == 1)
@@ -102,7 +102,7 @@ int main ( int argc, char * argv[] )
       }
 
       // update iterator value to this vector direction
-      paImageIterator.SetInput(thisVector)
+      paImageIterator.Set(thisVector)
 
       // increment iterators
       ++paImageIterator;
