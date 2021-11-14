@@ -24,32 +24,26 @@ int main ( int argc, char * argv[] )
     const unsigned int nDims = 3;
 
     // define tensor type and image type 
-    // typedef itk::DiffusionTensor3D <double> TensorType;
-    // typedef itk::Image <TensorType, nDims> TensorImageType;
-    // typedef itk::Image <double, nDims> ImageType;
-    // typedef itk::ImageFileReader <ImageType> ImageFileReader;
-    // typedef itk::Vector <double, nDims> VectorType;
-    // typedef itk::Image <VectorType, nDims> PAImageType;
-
-
-    //---Image Typedefs--//
-    typedef itk::DiffusionTensor3D < double > DiffTensorType ;
-    typedef itk::Image < DiffTensorType , nDims > ImageType ;
+    typedef itk::DiffusionTensor3D <double> TensorType;
+    typedef itk::Image <TensorType, nDims> TensorImageType;
+    typedef itk::Image <double, nDims> ImageType;
+    typedef itk::ImageFileReader <TensorImageType> TensorImageFileReader;
+    typedef itk::ImageFileReader <ImageType> ImageFileReader;
     typedef itk::Vector <double, nDims> VectorType;
-    typedef itk::Image <VectorType, nDims> PAImageType ;
-    typedef itk::Image < double, nDims> FAImageType ;
-    typedef itk::Image < double, nDims> TrackImageType ;
-    typedef itk::Image < double, nDims> SegmentedImageType ;
-    typedef itk::ImageFileReader <ImageType> TensorImageFileReader;
-    // define eigne value matrix and eigenvalue array along with vector and tensortype
-    DiffTensorType thisTensor;
-    VectorType thisVector;
-    DiffTensorType::EigenValuesArrayType eigenValArrayType;
-    DiffTensorType::EigenVectorsMatrixType eigenValMatrixType;
+    typedef itk::Image <VectorType, nDims> PAImageType;
 
+    // define eigne value matrix and eigenvalue array along with vector and tensortype
+    TensorType thisTensor;
+    VectorType thisVector;
+    TensorType::EigenValuesArrayType eigenValArrayType;
+    TensorType::EigenVectorsMatrixType eigenValMatrixType;
+
+        // iterate through the input image and PA imag
 
     // define iters for the image and PAImageType
-    typedef itk::ImageRegionIterator < ImageType > InputIteratorType ;
+    typedef itk::ImageRegionIterator <TensorImageType> ImageIteratorType;
+    typedef itk::ImageRegionIterator <PAImageType> PAImageIteratorType;
+    typedef itk::ImageRegionIterator < TensorImageType > InputIteratorType ;
     typedef itk::ImageRegionIterator < PAImageType > OutputIteratorType ;
 
     
@@ -67,9 +61,9 @@ int main ( int argc, char * argv[] )
     // compute principal eigen value vector
     // create a new image type track of voxels
 
-    ImageType::RegionType newRegion;
+    TensorImageType::RegionType newRegion;
     //define new index type
-    ImageType::IndexType origin;
+    TensorImageType::IndexType origin;
     origin[0]=0;
     origin[1]=0;
     origin[2]=0;
@@ -86,63 +80,49 @@ int main ( int argc, char * argv[] )
     paImage->SetRegions(newRegion);
     paImage->Allocate() ; // allocate this as a memory space
 
-    OutputIteratorType outputIterator (myPAImage, myCustomRegion);
-    InputIteratorType inputIterator (myImage, myCustomRegion);
-    outputIterator.GoToBegin ();
-    inputIterator.GoToBegin () ;
-    DiffTensorType thisTensor ;
-    DiffTensorType::EigenValuesArrayType myEVAT;
-    DiffTensorType::EigenVectorsMatrixType myEVMT ;
-    VectorType thisVector ;
 
-    while (!outputIterator.IsAtEnd() )
-    {
-    thisTensor =  inputIterator.Value() ;
-    thisTensor.ComputeEigenAnalysis(myEVAT, myEVMT) ;
-    thisVector[0] = myEVMT[2][0]*1 ; thisVector[1] = myEVMT[2][1]*1 ; thisVector[2] = myEVMT[2][2]*1 ; // Principal axis vector
-
-    if (myEVMT[2][2] == 1) { 
-      thisVector[0] = 0; thisVector[1] = 0; thisVector[2] = 0; //Change zero tensor to 0 Principal Vector Direction
-    }
-    outputIterator.Set(thisVector) ;
-    ++outputIterator ;
-    ++inputIterator ;
-    }
     // OutputIteratorType paImageIterator (paImage, newRegion);
     // InputIteratorType inputImageIterator(img, newRegion);
 
     // // go to begin of the image iterate
     // paImageIterator.GoToBegin();
     // inputImageIterator.GoToBegin();
+
+    OutputIteratorType outputIterator (myPAImage, myCustomRegion);
+    InputIteratorType inputIterator (myImage, myCustomRegion);
+    outputIterator.GoToBegin ();
+    inputIterator.GoToBegin () ;
     
     // compute eigenvals and eigne vectors for the image
-    // while (!paImageIterator.IsAtEnd())
-    // {
-    //   thisTensor = inputImageIterator.Value();
+    while (!outputIterator.IsAtEnd())
+    {
+      thisTensor = inputIterator.Value();
 
-    //   thisTensor.ComputeEigenAnalysis(eigenValArrayType, eigenValMatrixType);
+      thisTensor.ComputeEigenAnalysis(eigenValArrayType, eigenValMatrixType);
 
-    //   // assign eigen val and vector to the tensor
-    //   thisVector[0]=eigenValMatrixType[2][0] * 1;
-    //   thisVector[1]=eigenValMatrixType[2][1] * 1;
-    //   thisVector[2]=eigenValMatrixType[2][2] * 1;
+      // assign eigen val and vector to the tensor
+      thisVector[0]=eigenValMatrixType[2][0] * 1;
+      thisVector[1]=eigenValMatrixType[2][1] * 1;
+      thisVector[2]=eigenValMatrixType[2][2] * 1;
 
-    //   // clip the vector if its zero i.e. matrixval[2][2] = 1
-    //   if (eigenValMatrixType[2][2] == 1)
-    //   {
-    //     thisVector[0]=0;
-    //     thisVector[1]=0;
-    //     thisVector[2]=0;
-    //   }
+      // clip the vector if its zero i.e. matrixval[2][2] = 1
+      if (eigenValMatrixType[2][2] == 1)
+      {
+        thisVector[0]=0;
+        thisVector[1]=0;
+        thisVector[2]=0;
+      }
 
-    //   // update iterator value to this vector direction
-    //   paImageIterator.Set(thisVector)
+      // update iterator value to this vector direction
+      outputIterator.Set(thisVector)
 
-    //   // increment iterators 
-    //   // TODO: Look into it after the entire code
-    //   // ++paImageIterator ;
-    //   // ++inputImageIterator ;
-    // }
+      // increment iterators 
+      // TODO: Look into it after the entire
+      // ++paImageIterator ;
+      // ++inputImageIterator ;
+      ++outputIterator ;
+      ++inputIterator ;
+    }
     
 
     // Done
