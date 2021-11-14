@@ -78,7 +78,7 @@ int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, 
 }
 
 template <class ImageType>
-none imageWriter(ImageType::Pointer image, char* filename) {
+int imageWriter(typename ImageType::Pointer image, char* filename) {
 
   // create an ITK file writer
   typedef itk::ImageFileWriter <ImageType> ImageFileWriterType;
@@ -88,6 +88,8 @@ none imageWriter(ImageType::Pointer image, char* filename) {
   myFileWriter -> SetFileName(filename);
   myFileWriter -> SetInput(image);
   myFileWriter -> Update();
+
+  return 0;
 
 }
 
