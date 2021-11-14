@@ -32,7 +32,7 @@ int main ( int argc, char * argv[] )
     typedef itk::Image <VectorType, nDims> PAImageType;
 
     // define eigne value matrix and eigenvalue array along with vector and tensortype
-    TensorImageType thisTensor;
+    TensorType thisTensor;
     VectorType thisVector;
     TensorType::EigenValuesArrayType eigenValArrayType;
     TensorType::EigenVectorsMatrixType eigenValMatrixType;
