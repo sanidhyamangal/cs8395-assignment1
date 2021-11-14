@@ -31,10 +31,10 @@ int main ( int argc, char * argv[] )
   
   //---Read Input Images---//
   typedef itk::ImageFileReader < ImageType > ImageReaderType1 ;
-  ImageReaderType1 ::Pointer myReader1 = ImageReaderType1 ::New() ;  
-  myReader1->SetFileName ( argv[1] ) ;
-  myReader1->Update();   // go read
-  ImageType::Pointer myImage = myReader1->GetOutput();
+  ImageReaderType1 ::Pointer img = ImageReaderType1 ::New() ;  
+  img->SetFileName ( argv[1] ) ;
+  img->Update();   // go read
+  ImageType::Pointer myImage = img->GetOutput();
 
 
   //---(2) Compute principal eigenvector---//
