@@ -89,9 +89,9 @@ int main ( int argc, char * argv[] )
       thisTensor.ComputeEgienAnalysis(eigenValArrayType, eigenValMatrixType);
 
       // assign eigen val and vector to the tensor
-      thisVector[0]=eigneValMatrixType[2][0];
-      thisVector[1]=eigneValMatrixType[2][1];
-      thisVector[2]=eigneValMatrixType[2][2];
+      thisVector[0]=eigneValMatrixType[2][0] * 1;
+      thisVector[1]=eigneValMatrixType[2][1] * 1;
+      thisVector[2]=eigneValMatrixType[2][2] * 1;
 
       // clip the vector if its zero i.e. matrixval[2][2] = 1
       if (eigenValMatrixType[2][2] == 1)
