@@ -30,11 +30,11 @@ int main ( int argc, char * argv[] )
 
   
   //---Read Input Images---//
-  typedef itk::ImageFileReader < ImageType > ImageReaderType1 ;
-  ImageReaderType1 ::Pointer img = ImageReaderType1 ::New() ;  
-  img->SetFileName ( argv[1] ) ;
-  img->Update();   // go read
-  ImageType::Pointer myImage = img->GetOutput();
+  typedef itk::TensorImageFileReader < ImageType > TensorImageReaderType ;
+  TensorImageFileReader ::Pointer inputFileReader = TensorImageReaderType ::New() ;  
+  inputFileReader->SetFileName ( argv[1] ) ;
+  inputFileReader->Update();   // go read
+  ImageType::Pointer img = inputFileReader->GetOutput();
 
 
   //---(2) Compute principal eigenvector---//
@@ -69,15 +69,11 @@ int main ( int argc, char * argv[] )
    thisTensor =  inputImageIterator.Value() ;
    thisTensor.ComputeEigenAnalysis(eigenValArrayType, eigenValMatrixType) ;
    thisVector[0] = eigenValMatrixType[2][0]*1 ; 
-   thisVector[1] = eigenValMatrixType[2][1]*1 ; 
-   thisVector[2] = eigenValMatrixType[2][2]*1 ; // Principal axis vector
+   thisVector[1] = eigenValMatrixType[2][1]*1 ; thisVector[2] = eigenValMatrixType[2][2]*1 ; // Principal axis vector
 
    if (eigenValMatrixType[2][2] == 1) { 
-     thisVector[0] = 0; 
-     thisVector[1] = 0; 
-     thisVector[2] = 0; //Change zero tensor to 0 Principal Vector Direction
+     thisVector[0] = 0; thisVector[1] = 0; thisVector[2] = 0; //Change zero tensor to 0 Principal Vector Direction
    }
-
    paIterator.Set(thisVector) ;
    ++paIterator ;
    ++inputImageIterator ;
