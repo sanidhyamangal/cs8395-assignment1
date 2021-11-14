@@ -41,6 +41,7 @@ int main ( int argc, char * argv[] )
     // load input image for the processing
     ImageFileReader::Pointer imgReader = ImageFileReader::New();
     imgReader -> SetFileName(argv[1]);
+    imgReader -> Update()
     TensorImageType::Pointer img = imgReader -> GetOutput();
     TensorImageType::RegionType region = img -> GetLargestPossibleRegion();
     TensorImageType::SizeType size = region.GetSize();
