@@ -28,7 +28,7 @@ int main ( int argc, char * argv[] )
     typedef itk::Image <TensorType, nDims> TensorImageType;
     typedef itk::Image <double, nDims> ImageType;
     typedef itk::ImageFileReader <ImageType> ImageFileReader;
-    typedef itk::Image <double, nDims> VectorType;
+    typedef itk::Vector <double, nDims> VectorType;
     typedef itk::Image <VectorType, nDims> PAImageType;
 
     // define eigne value matrix and eigenvalue array along with vector and tensortype
