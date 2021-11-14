@@ -86,7 +86,7 @@ int main ( int argc, char * argv[] )
     {
       thisTensor = inputImageIterator.Value();
 
-      thisTensor.ComputeEgienAnalysis(eigenValArrayType, eigenValMatrixType);
+      thisTensor.ComputeEigenAnalysis(eigenValArrayType, eigenValMatrixType);
 
       // assign eigen val and vector to the tensor
       thisVector[0]=eigneValMatrixType[2][0] * 1;
