@@ -24,26 +24,32 @@ int main ( int argc, char * argv[] )
     const unsigned int nDims = 3;
 
     // define tensor type and image type 
-    typedef itk::DiffusionTensor3D <double> TensorType;
-    typedef itk::Image <TensorType, nDims> TensorImageType;
-    typedef itk::Image <double, nDims> ImageType;
-    typedef itk::ImageFileReader <TensorImageType> TensorImageFileReader;
-    typedef itk::ImageFileReader <ImageType> ImageFileReader;
+    // typedef itk::DiffusionTensor3D <double> TensorType;
+    // typedef itk::Image <TensorType, nDims> TensorImageType;
+    // typedef itk::Image <double, nDims> ImageType;
+    // typedef itk::ImageFileReader <ImageType> ImageFileReader;
+    // typedef itk::Vector <double, nDims> VectorType;
+    // typedef itk::Image <VectorType, nDims> PAImageType;
+
+
+    //---Image Typedefs--//
+    typedef itk::DiffusionTensor3D < double > DiffTensorType ;
+    typedef itk::Image < DiffTensorType , nDims > ImageType ;
     typedef itk::Vector <double, nDims> VectorType;
-    typedef itk::Image <VectorType, nDims> PAImageType;
-
+    typedef itk::Image <VectorType, nDims> PAImageType ;
+    typedef itk::Image < double, nDims> FAImageType ;
+    typedef itk::Image < double, nDims> TrackImageType ;
+    typedef itk::Image < double, nDims> SegmentedImageType ;
+    typedef itk::ImageFileReader <ImageType> TensorImageFileReader;
     // define eigne value matrix and eigenvalue array along with vector and tensortype
-    TensorType thisTensor;
+    DiffTensorType thisTensor;
     VectorType thisVector;
-    TensorType::EigenValuesArrayType eigenValArrayType;
-    TensorType::EigenVectorsMatrixType eigenValMatrixType;
+    DiffTensorType::EigenValuesArrayType eigenValArrayType;
+    DiffTensorType::EigenVectorsMatrixType eigenValMatrixType;
 
-        // iterate through the input image and PA imag
 
     // define iters for the image and PAImageType
-    typedef itk::ImageRegionIterator <TensorImageType> ImageIteratorType;
-    typedef itk::ImageRegionIterator <PAImageType> PAImageIteratorType;
-    typedef itk::ImageRegionIterator < TensorImageType > InputIteratorType ;
+    typedef itk::ImageRegionIterator < ImageType > InputIteratorType ;
     typedef itk::ImageRegionIterator < PAImageType > OutputIteratorType ;
 
     
@@ -61,9 +67,9 @@ int main ( int argc, char * argv[] )
     // compute principal eigen value vector
     // create a new image type track of voxels
 
-    TensorImageType::RegionType newRegion;
+    ImageType::RegionType newRegion;
     //define new index type
-    TensorImageType::IndexType origin;
+    ImageType::IndexType origin;
     origin[0]=0;
     origin[1]=0;
     origin[2]=0;
@@ -80,13 +86,34 @@ int main ( int argc, char * argv[] )
     paImage->SetRegions(newRegion);
     paImage->Allocate() ; // allocate this as a memory space
 
+    OutputIteratorType outputIterator (myPAImage, myCustomRegion);
+    InputIteratorType inputIterator (myImage, myCustomRegion);
+    outputIterator.GoToBegin ();
+    inputIterator.GoToBegin () ;
+    DiffTensorType thisTensor ;
+    DiffTensorType::EigenValuesArrayType myEVAT;
+    DiffTensorType::EigenVectorsMatrixType myEVMT ;
+    VectorType thisVector ;
 
-    OutputIteratorType paImageIterator (paImage, newRegion);
-    InputIteratorType inputImageIterator(img, newRegion);
+    while (!outputIterator.IsAtEnd() )
+    {
+    thisTensor =  inputIterator.Value() ;
+    thisTensor.ComputeEigenAnalysis(myEVAT, myEVMT) ;
+    thisVector[0] = myEVMT[2][0]*1 ; thisVector[1] = myEVMT[2][1]*1 ; thisVector[2] = myEVMT[2][2]*1 ; // Principal axis vector
 
-    // go to begin of the image iterate
-    paImageIterator.GoToBegin();
-    inputImageIterator.GoToBegin();
+    if (myEVMT[2][2] == 1) { 
+      thisVector[0] = 0; thisVector[1] = 0; thisVector[2] = 0; //Change zero tensor to 0 Principal Vector Direction
+    }
+    outputIterator.Set(thisVector) ;
+    ++outputIterator ;
+    ++inputIterator ;
+    }
+    // OutputIteratorType paImageIterator (paImage, newRegion);
+    // InputIteratorType inputImageIterator(img, newRegion);
+
+    // // go to begin of the image iterate
+    // paImageIterator.GoToBegin();
+    // inputImageIterator.GoToBegin();
     
     // compute eigenvals and eigne vectors for the image
     while (!paImageIterator.IsAtEnd())
@@ -111,9 +138,10 @@ int main ( int argc, char * argv[] )
       // update iterator value to this vector direction
       paImageIterator.Set(thisVector)
 
-      // increment iterators
-      ++paImageIterator;
-      ++inputImageIterator;
+      // increment iterators 
+      // TODO: Look into it after the entire code
+      // ++paImageIterator ;
+      // ++inputImageIterator ;
     }
     
 
