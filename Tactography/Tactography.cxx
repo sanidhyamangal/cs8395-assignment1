@@ -246,20 +246,21 @@ int main ( int argc, char * argv[] )
   BaseImageIteratorType segmentationIter (segmentedImage, newRegion);
   segmentationIter.GoToBegin();
 
-  // while (!segmentationIter.IsAtEnd())
-  // {
-  //   if (segmentationIter.Value() == 1.0){
-  //     int iter = 0;
-  //     std::cout << "Segmented Image iter " << iter <<std::endl;
-  //     traverseImage(faImageFilter -> GetOutput(), paImage, segmentedTrackerImage, segmentationIter.GetIndex(), delta, iter);
-  //   }
-  // }
+  while (!segmentationIter.IsAtEnd())
+  {
+    if (segmentationIter.Value() == 1.0){
+      int iter = 0;
+      std::cout << "Segmented Image iter " << iter <<std::endl;
+      traverseImage(faImageFilter -> GetOutput(), paImage, segmentedTrackerImage, segmentationIter.GetIndex(), delta, iter);
+    }
+    ++segmentationIter;
+  }
   
 
   std::cout << "Writing Output Images" <<std::endl;
   imageWriter<PAImageType>(paImage, argv[3]);
   imageWriter<BaseImageType>(faImageFilter->GetOutput(), argv[4]);
-  imageWriter<BaseImageType>(trackerImage, argv[5]);
+  imageWriter<BaseImageType>(segmentedTrackerImage, argv[5]);
 
   // Done.
   return 0 ;
