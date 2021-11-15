@@ -212,9 +212,9 @@ int main ( int argc, char * argv[] )
   // define random seed
   ImageType::IndexType seed;
 
-  seed[0] = 69;
-  seed[1] = 89;
-  seed[2] = 36;
+  seed[0] = 72;
+  seed[1] = 40;
+  seed[2] = 34;
 
   // define hyperparms for tracking the inputs
   unsigned int iter=0;
@@ -246,14 +246,14 @@ int main ( int argc, char * argv[] )
   BaseImageIteratorType segmentationIter (segmentedImage, newRegion);
   segmentationIter.GoToBegin();
 
-  while (!segmentationIter.IsAtEnd())
-  {
-    if (segmentationIter.Value() == 1.0){
-      int iter = 0;
-      std::cout << "Segmented Image iter " << iter <<std::endl;
-      traverseImage(faImageFilter -> GetOutput(), paImage, segmentedTrackerImage, segmentationIter.GetIndex(), delta, iter);
-    }
-  }
+  // while (!segmentationIter.IsAtEnd())
+  // {
+  //   if (segmentationIter.Value() == 1.0){
+  //     int iter = 0;
+  //     std::cout << "Segmented Image iter " << iter <<std::endl;
+  //     traverseImage(faImageFilter -> GetOutput(), paImage, segmentedTrackerImage, segmentationIter.GetIndex(), delta, iter);
+  //   }
+  // }
   
 
   std::cout << "Writing Output Images" <<std::endl;
