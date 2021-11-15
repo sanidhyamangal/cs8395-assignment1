@@ -226,7 +226,7 @@ int main ( int argc, char * argv[] )
   // ---- Perform Segmentation Task ---- //
   // load segmented image file
   BaseImageReaderType::Pointer segmentedFileReader = BaseImageReaderType::New();
-  segmentedFileReader -> SetFileName(argv[2])
+  segmentedFileReader -> SetFileName(argv[2]);
   segmentedFileReader -> Update(); // read the file
   BaseImageType::Pointer segmentedImage = segmentedFileReader -> GetOutput();
 
@@ -240,7 +240,7 @@ int main ( int argc, char * argv[] )
 
   while (!segmentationIter.IsAtEnd())
   {
-    if (segmetationIter.Value() == 1.0){
+    if (segmentationIter.Value() == 1.0){
       int iter = 0;
       traverseImage(faImageFilter -> GetOutput(), paImage, segmentedTrackerImage, segmentationIter.GetIndex(), delta, iter);
     }
