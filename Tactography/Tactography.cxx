@@ -15,7 +15,7 @@ typedef itk::Vector <double, nDims> VectorType;
 typedef itk::Image <VectorType, nDims> PAImageType ;
 typedef itk::Image < double, nDims> BaseImageType ;
 typedef itk::ImageFileReader < ImageType > TensorImageFileReaderType ;
-typedef itk::BaseImageFileReader<BaseImageType> BaseImageReaderType;
+typedef itk::ImageFileReader < BaseImageType > BaseImageReaderType;
 typedef itk::ImageRegionIterator < ImageType > InputImageIterator ;
 typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
 typedef itk::ImageRegionIterator <BaseImageType> BaseImageIterator ;
@@ -232,7 +232,7 @@ int main ( int argc, char * argv[] )
 
   // create a tracker image for the segmented file
   BaseImageType::Pointer segmentedTrackerImage = BaseImageType::New();
-  CreateTrackerImage(segmentedTrackerImage, img, newRegion)
+  CreateTrackerImage(segmentedTrackerImage, img, newRegion);
 
   // create segmentation iterator
   BaseIteratorType segmentationIter (segmentedImage, newRegion);
