@@ -15,9 +15,22 @@ typedef itk::Vector <double, nDims> VectorType;
 typedef itk::Image <VectorType, nDims> PAImageType ;
 typedef itk::Image < double, nDims> BaseImageType ;
 typedef itk::ImageFileReader < ImageType > TensorImageFileReaderType ;
+typedef itk::BaseImageFileReader<BaseImageType> BaseImageReaderType;
 typedef itk::ImageRegionIterator < ImageType > InputImageIterator ;
 typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
+typedef itk::ImageRegionIterator <BaseImageType> BaseImageIterator ;
 typedef itk::TensorFractionalAnisotropyImageFilter <ImageType, BaseImageType> FAImageFilterType;
+
+// function to create a tracker image
+int CreateTrackerImage(BaseImageType::Pointer tracker, ImageType::Pointer img, ImageType::RegionType region){
+  tracker->SetOrigin(img->GetOrigin() ) ;
+  tracker->SetDirection(img->GetDirection() );
+  tracker->SetSpacing(img->GetSpacing() );
+  tracker->SetRegions(region);
+  tracker->Allocate() ;
+
+  return 0;
+}
 
 // Function to return the new index for the tracker
 ImageType::IndexType computeNewIdx(VectorType thisVector, double delta, ImageType::IndexType currLoc, bool sign){
@@ -100,10 +113,10 @@ int imageWriter(typename ImageType::Pointer image, char* filename) {
 int main ( int argc, char * argv[] )
 {
   // --- Verify command line arguments----//
-  if( argc < 5 )
+  if( argc < 6 )
     {
       std::cerr << "Usage: " << std::endl ;
-      std::cerr << argv[0] << " inputFileImage outputEigenVecFile outputFAImage outputTrackerFile" << std::endl ; 
+      std::cerr << argv[0] << " inputFileImage inputSegmentedFile outputEigenVecFile outputFAImage outputTrackerFile" << std::endl ; 
       return -1 ;
     }
 
@@ -129,11 +142,12 @@ int main ( int argc, char * argv[] )
 
   // create a tracker image for the segmentation of the index it would be used later
   BaseImageType::Pointer trackerImage = BaseImageType::New() ;
-  trackerImage->SetOrigin(img->GetOrigin() ) ;
-  trackerImage->SetDirection(img->GetDirection() );
-  trackerImage->SetSpacing(img->GetSpacing() );
-  trackerImage->SetRegions(newRegion);
-  trackerImage->Allocate() ;
+  // trackerImage->SetOrigin(img->GetOrigin() ) ;
+  // trackerImage->SetDirection(img->GetDirection() );
+  // trackerImage->SetSpacing(img->GetSpacing() );
+  // trackerImage->SetRegions(newRegion);
+  // trackerImage->Allocate() ;
+  CreateTrackerImage(trackerImage, img, newRegion);
 
   // ---- EigenValue and FA computation ------//
 
@@ -194,8 +208,8 @@ int main ( int argc, char * argv[] )
   ImageType::IndexType seed;
 
   seed[0] = 69;
-  seed[1] = 75;
-  seed[2] = 31;
+  seed[1] = 89;
+  seed[2] = 36;
 
   // define hyperparms for tracking the inputs
   unsigned int iter=0;
@@ -208,10 +222,35 @@ int main ( int argc, char * argv[] )
 
   // start image traversal for the images
   traverseImage(faImageFilter -> GetOutput(), paImage, trackerImage, currLoc, delta, iter);
+  
+  // ---- Perform Segmentation Task ---- //
+  // load segmented image file
+  BaseImageReaderType::Pointer segmentedFileReader = BaseImageReaderType::New();
+  segmentedFileReader -> SetFileName(argv[2])
+  segmentedFileReader -> Update(); // read the file
+  BaseImageType::Pointer segmentedImage = segmentedFileReader -> GetOutput();
+
+  // create a tracker image for the segmented file
+  BaseImageType::Pointer segmentedTrackerImage = BaseImageType::New();
+  CreateTrackerImage(segmentedTrackerImage, img, newRegion)
+
+  // create segmentation iterator
+  BaseIteratorType segmentationIter (segmentedImage, newRegion);
+  segmentationIter.GoToBegin();
+
+  while (!segmentationIter.IsAtEnd())
+  {
+    if (segmetationIter.Value() == 1.0){
+      int iter = 0;
+      traverseImage(faImageFilter -> GetOutput(), paImage, segmentedTrackerImage, segmentationIter.GetIndex(), delta, iter);
+    }
+  }
+  
+
 
   imageWriter<PAImageType>(paImage, argv[3]);
   imageWriter<BaseImageType>(faImageFilter->GetOutput(), argv[4]);
-  imageWriter<BaseImageType>(trackerImage, argv[5]);
+  imageWriter<BaseImageType>(segmentedTrackerImage, argv[5]);
 
   // Done.
   return 0 ;
