@@ -238,19 +238,19 @@ int main ( int argc, char * argv[] )
   BaseImageIteratorType segmentationIter (segmentedImage, newRegion);
   segmentationIter.GoToBegin();
 
-  while (!segmentationIter.IsAtEnd())
-  {
-    if (segmentationIter.Value() == 1.0){
-      int iter = 0;
-      traverseImage(faImageFilter -> GetOutput(), paImage, segmentedTrackerImage, segmentationIter.GetIndex(), delta, iter);
-    }
-  }
+  // while (!segmentationIter.IsAtEnd())
+  // {
+  //   if (segmentationIter.Value() == 1.0){
+  //     int iter = 0;
+  //     traverseImage(faImageFilter -> GetOutput(), paImage, segmentedTrackerImage, segmentationIter.GetIndex(), delta, iter);
+  //   }
+  // }
   
 
 
   imageWriter<PAImageType>(paImage, argv[3]);
   imageWriter<BaseImageType>(faImageFilter->GetOutput(), argv[4]);
-  imageWriter<BaseImageType>(segmentedTrackerImage, argv[5]);
+  imageWriter<BaseImageType>(trackerImage, argv[5]);
 
   // Done.
   return 0 ;
