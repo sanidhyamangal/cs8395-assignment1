@@ -122,6 +122,7 @@ int main ( int argc, char * argv[] )
 
   
   // read input image file
+  std::cout << "Loading Input TensorImage" <<std::endl;
   TensorImageFileReaderType ::Pointer inputFileReader = TensorImageFileReaderType ::New() ;  
   inputFileReader->SetFileName ( argv[1] ) ;
   inputFileReader->Update();
@@ -147,11 +148,13 @@ int main ( int argc, char * argv[] )
   // trackerImage->SetSpacing(img->GetSpacing() );
   // trackerImage->SetRegions(newRegion);
   // trackerImage->Allocate() ;
+  std::cout << "Creating a Tracker Image for the Input Image" <<std::endl;
   CreateTrackerImage(trackerImage, img, newRegion);
 
   // ---- EigenValue and FA computation ------//
 
   // define PA image for other ops such as eigen value computation
+  std::cout << "Allocating Principal Axis Eigen Value Image" <<std::endl;
   PAImageType::Pointer paImage = PAImageType::New() ;
   paImage->SetOrigin(img->GetOrigin() ) ;
   paImage->SetDirection(img->GetDirection() );
@@ -195,6 +198,8 @@ int main ( int argc, char * argv[] )
    ++inputImageIterator ;
   }
 
+  std::cout << "Computing FA for the Input Image" <<std::endl;
+
   // compute FA for the image
   FAImageFilterType::Pointer faImageFilter = FAImageFilterType::New();
   // pass input image as input
@@ -203,7 +208,7 @@ int main ( int argc, char * argv[] )
 
 
   //------Voxel Tracking ------//
-
+  std::cout << "Performing Voxel tracking for the Input Image" <<std::endl;
   // define random seed
   ImageType::IndexType seed;
 
@@ -224,6 +229,7 @@ int main ( int argc, char * argv[] )
   traverseImage(faImageFilter -> GetOutput(), paImage, trackerImage, currLoc, delta, iter);
   
   // ---- Perform Segmentation Task ---- //
+  std::cout << "Loading Segmentation Image" <<std::endl;
   // load segmented image file
   BaseImageReaderType::Pointer segmentedFileReader = BaseImageReaderType::New();
   segmentedFileReader -> SetFileName(argv[2]);
@@ -231,10 +237,12 @@ int main ( int argc, char * argv[] )
   BaseImageType::Pointer segmentedImage = segmentedFileReader -> GetOutput();
 
   // create a tracker image for the segmented file
+  std::cout << "Allocating Tracker image for Segmentation Image" <<std::endl;
   BaseImageType::Pointer segmentedTrackerImage = BaseImageType::New();
   CreateTrackerImage(segmentedTrackerImage, img, newRegion);
 
   // create segmentation iterator
+  std::cout << "Computing Tracker Image for the Segmented Image" <<std::endl;
   BaseImageIteratorType segmentationIter (segmentedImage, newRegion);
   segmentationIter.GoToBegin();
 
@@ -247,7 +255,7 @@ int main ( int argc, char * argv[] )
   // }
   
 
-
+  std::cout << "Writing Output Images" <<std::endl;
   imageWriter<PAImageType>(paImage, argv[3]);
   imageWriter<BaseImageType>(faImageFilter->GetOutput(), argv[4]);
   imageWriter<BaseImageType>(trackerImage, argv[5]);
