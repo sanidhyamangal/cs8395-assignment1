@@ -220,13 +220,13 @@ int main ( int argc, char * argv[] )
   // define random seed
   ImageType::IndexType seed;
 
-  seed[0] = 72;
-  seed[1] = 40;
-  seed[2] = 34;
+  seed[0] = 73;
+  seed[1] = 89;
+  seed[2] = 36;
 
   // define hyperparms for tracking the inputs
   unsigned int iter=0;
-  double delta = 0.9;
+  double delta = 0.85;
 
 
   // define location of the seed
