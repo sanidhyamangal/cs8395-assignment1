@@ -18,7 +18,7 @@ typedef itk::ImageFileReader < ImageType > TensorImageFileReaderType ;
 typedef itk::ImageFileReader < BaseImageType > BaseImageReaderType;
 typedef itk::ImageRegionIterator < ImageType > InputImageIterator ;
 typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
-typedef itk::ImageRegionIterator <BaseImageType> BaseImageIterator ;
+typedef itk::ImageRegionIterator <BaseImageType> BaseImageIteratorType ;
 typedef itk::TensorFractionalAnisotropyImageFilter <ImageType, BaseImageType> FAImageFilterType;
 
 // function to create a tracker image
@@ -235,7 +235,7 @@ int main ( int argc, char * argv[] )
   CreateTrackerImage(segmentedTrackerImage, img, newRegion);
 
   // create segmentation iterator
-  BaseIteratorType segmentationIter (segmentedImage, newRegion);
+  BaseImageIteratorType segmentationIter (segmentedImage, newRegion);
   segmentationIter.GoToBegin();
 
   while (!segmentationIter.IsAtEnd())
