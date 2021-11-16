@@ -89,7 +89,7 @@ int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, 
 
   // find the new set of forward and backward indexes to call the function
   ImageType::IndexType forward = computeNewIdx(thisVector, delta, curLoc, true);
-  ImageType::IndexType backward = computeNewIdx(thisVector, delta, curLoc, true);
+  ImageType::IndexType backward = computeNewIdx(thisVector, delta, curLoc, false);
 
   std::cout << "Forward: " << forward << std::endl;
   std::cout << "Backward: " << backward << std::endl;
