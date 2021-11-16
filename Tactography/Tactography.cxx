@@ -56,10 +56,6 @@ ImageType::IndexType computeNewIdx(VectorType thisVector, double delta, ImageTyp
 int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, BaseImageType::Pointer trackerImage, ImageType::IndexType curLoc ,double delta, int iter){
   // stopping conditions
   // if location is outside of the image
-  std::cout <<"Iter: "<<iter<<std::endl;
-  std::cout << "Is Inside: " << trackerImage -> GetLargestPossibleRegion().IsInside(curLoc) << std::endl;
-  std::cout << "Already Visited: " << trackerImage -> GetPixel(curLoc) << std::endl;
-  std::cout << "FA Image: " << faImage -> GetPixel(curLoc) << std::endl;
   
   if (!trackerImage -> GetLargestPossibleRegion().IsInside(curLoc)){
     return 0;
@@ -71,7 +67,7 @@ int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, 
   }
 
   // if location is already visited
-  if (trackerImage -> GetPixel(curLoc) == 1){
+  if (trackerImage -> GetPixel(curLoc) == 1.0){
     return 0;
   }
 
@@ -121,10 +117,10 @@ int imageWriter(typename ImageType::Pointer image, char* filename) {
 int main ( int argc, char * argv[] )
 {
   // --- Verify command line arguments----//
-  if( argc < 6 )
+  if( argc < 7 )
     {
       std::cerr << "Usage: " << std::endl ;
-      std::cerr << argv[0] << " inputFileImage inputSegmentedFile outputEigenVecFile outputFAImage outputTrackerFile" << std::endl ; 
+      std::cerr << argv[0] << " inputFileImage inputSegmentedFile outputEigenVecFile outputFAImage outputTrackerFile outputSegmentedTrackerFile" << std::endl ; 
       return -1 ;
     }
 
@@ -221,7 +217,7 @@ int main ( int argc, char * argv[] )
   ImageType::IndexType seed;
 
   seed[0] = 73;
-  seed[1] = 89;
+  seed[1] = 86;
   seed[2] = 36;
 
   // define hyperparms for tracking the inputs
@@ -254,20 +250,21 @@ int main ( int argc, char * argv[] )
   BaseImageIteratorType segmentationIter (segmentedImage, newRegion);
   segmentationIter.GoToBegin();
 
-  // while (!segmentationIter.IsAtEnd())
-  // {
-  //   if (segmentationIter.Value() == 1.0){
-  //     int iter = 0;
-  //     traverseImage(faImageFilter -> GetOutput(), paImage, segmentedTrackerImage, segmentationIter.GetIndex(), delta, iter);
-  //   }
-  //   ++segmentationIter;
-  // }
+  while (!segmentationIter.IsAtEnd())
+  {
+    if (segmentationIter.Value() == 1.0){
+      int iter = 0;
+      traverseImage(faImageFilter -> GetOutput(), paImage, segmentedTrackerImage, segmentationIter.GetIndex(), delta, iter);
+    }
+    ++segmentationIter;
+  }
   
 
   std::cout << "Writing Output Images" <<std::endl;
   imageWriter<PAImageType>(paImage, argv[3]);
   imageWriter<BaseImageType>(faImageFilter->GetOutput(), argv[4]);
   imageWriter<BaseImageType>(trackerImage, argv[5]);
+  imageWriter<BaseImageType>(segmentedTrackerImage, argv[6]);
 
   // Done.
   return 0 ;
