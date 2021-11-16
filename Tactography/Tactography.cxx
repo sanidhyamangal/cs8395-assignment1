@@ -87,9 +87,6 @@ int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, 
   ImageType::IndexType forward = computeNewIdx(thisVector, delta, curLoc, true);
   ImageType::IndexType backward = computeNewIdx(thisVector, delta, curLoc, false);
 
-  std::cout << "Forward: " << forward << std::endl;
-  std::cout << "Backward: " << backward << std::endl;
-
   // make recursive calls to track image
   traverseImage(faImage, paImage, trackerImage, forward, delta, iter);
   traverseImage(faImage, paImage, trackerImage, backward, delta, iter);
@@ -217,12 +214,12 @@ int main ( int argc, char * argv[] )
   ImageType::IndexType seed;
 
   seed[0] = 73;
-  seed[1] = 86;
-  seed[2] = 36;
+  seed[1] = 83;
+  seed[2] = 34;
 
   // define hyperparms for tracking the inputs
   unsigned int iter=0;
-  double delta = 0.85;
+  double delta = 0.9;
 
 
   // define location of the seed
