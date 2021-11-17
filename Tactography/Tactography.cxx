@@ -144,11 +144,7 @@ int main ( int argc, char * argv[] )
 
   // create a tracker image for the segmentation of the index it would be used later
   BaseImageType::Pointer trackerImage = BaseImageType::New() ;
-  // trackerImage->SetOrigin(img->GetOrigin() ) ;
-  // trackerImage->SetDirection(img->GetDirection() );
-  // trackerImage->SetSpacing(img->GetSpacing() );
-  // trackerImage->SetRegions(newRegion);
-  // trackerImage->Allocate() ;
+
   std::cout << "Creating a Tracker Image for the Input Image" <<std::endl;
   CreateTrackerImage(trackerImage, img, newRegion);
 
