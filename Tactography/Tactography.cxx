@@ -131,7 +131,7 @@ int imageWriter(typename ImageType::Pointer image, char* filename) {
 int main ( int argc, char * argv[] )
 {
   // --- Verify command line arguments----//
-  if( argc < 7 )
+  if( argc < 3 )
     {
       std::cerr << "Usage: " << std::endl ;
       std::cerr << argv[0] << " inputFileImage inputSegmentedFile" << std::endl ; 
