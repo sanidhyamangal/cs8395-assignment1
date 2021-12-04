@@ -34,8 +34,8 @@ typedef itk::ImageRegionIterator < ImageType > InputImageIterator ;
 typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
 typedef itk::ImageRegionIterator <BaseImageType> BaseImageIteratorType ;
 typedef itk::TensorFractionalAnisotropyImageFilter <ImageType, BaseImageType> FAImageFilterType;
-typedef itk::ImageToVTKFilter <BaseImageType> BaseImageToVTKFilterType;
-typedef itk::ImageToVTKFilter <ImageType> ImageToVTKFilterType;
+typedef itk::ImageToVTKImageFilter <BaseImageType> BaseImageToVTKFilterType;
+typedef itk::ImageToVTKImageFilter <ImageType> ImageToVTKFilterType;
 
 
 // function to create a tracker image
@@ -220,14 +220,14 @@ int main ( int argc, char * argv[] )
   faImageFilter -> SetInput(img);
   faImageFilter -> Update();
   
-  BaseITKToVTKFilterType::Pointer  faItkToVtkFilter =  BaseITKToVTKFilterType::New();
+  BaseImageToVTKFilterType::Pointer  faItkToVtkFilter =  BaseImageToVTKFilterType::New();
   faItkToVtkFilter -> SetInput(faImageFilter->GetOutput());
   faItkToVtkFilter -> Update();
 
   // VTK Portion of the code - visualization pipeline
   // mapper
   vtkSmartPointer < vtkImageSliceMapper > imageMapper = vtkSmartPointer < vtkImageSliceMapper > ::New() ;
-  imageMapper->SetInputData ( itkToVTKfilter->GetOutput() ) ;
+  imageMapper->SetInputData ( faItkToVtkFilter->GetOutput() ) ;
   imageMapper->SetOrientationToX () ;
   imageMapper->SetSliceNumber ( 55 ) ;
   std::cout << "default for atfocalpoint: " << imageMapper->GetSliceAtFocalPoint () << std::endl ;
