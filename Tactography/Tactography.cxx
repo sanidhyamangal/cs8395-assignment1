@@ -59,54 +59,54 @@
    }
 }
  */
-class CustomTimerCallback : public vtkCommand
-{
-public:
-  static CustomTimerCallback * New ()
-  {
-    CustomTimerCallback *callback = new CustomTimerCallback ;
-    return callback ;
-  }
+// class CustomTimerCallback : public vtkCommand
+// {
+// public:
+//   static CustomTimerCallback * New ()
+//   {
+//     CustomTimerCallback *callback = new CustomTimerCallback ;
+//     return callback ;
+//   }
 
-  virtual void Execute (vtkObject *caller, unsigned long eventId, void *callData)
-  {
-    vtkSmartPointer < vtkRenderWindowInteractor > interactor = dynamic_cast < vtkRenderWindowInteractor * > ( caller ) ;
-    // Somehow find the camera
-    // Find the renderer first
-    vtkSmartPointer < vtkRenderWindow > window = interactor->GetRenderWindow () ;
-    vtkSmartPointer < vtkRenderer > renderer = window->GetRenderers ()->GetFirstRenderer () ;
-    vtkSmartPointer < vtkCamera > camera = renderer->GetActiveCamera() ;
+//   virtual void Execute (vtkObject *caller, unsigned long eventId, void *callData)
+//   {
+//     vtkSmartPointer < vtkRenderWindowInteractor > interactor = dynamic_cast < vtkRenderWindowInteractor * > ( caller ) ;
+//     // Somehow find the camera
+//     // Find the renderer first
+//     vtkSmartPointer < vtkRenderWindow > window = interactor->GetRenderWindow () ;
+//     vtkSmartPointer < vtkRenderer > renderer = window->GetRenderers ()->GetFirstRenderer () ;
+//     vtkSmartPointer < vtkCamera > camera = renderer->GetActiveCamera() ;
 
-    if ( this->m_counter > 10 )
-      {
-       interactor->DestroyTimer ( this->m_timerId ) ;
-	std::cout << "destroyed timer" << std::endl ;
-      }
-    else
-      {
-	double slice = camera->GetDistance() ;
-	slice += 2 ;
-	camera->SetDistance ( slice ) ;
-        std::cout << "lala" << std::endl;
-        std::cout << cVoxel << std::endl;
-        //segmentTract(inputsegIterate.GetIndex(), wmtractImage, faImage, pevImage, &iter_no);
-	std::cout << slice << " " << this->m_counter << std::endl ;
-	interactor->Render() ;
-      }
-    this->m_counter++ ;
+//     if ( this->m_counter > 10 )
+//       {
+//        interactor->DestroyTimer ( this->m_timerId ) ;
+// 	std::cout << "destroyed timer" << std::endl ;
+//       }
+//     else
+//       {
+// 	double slice = camera->GetDistance() ;
+// 	slice += 2 ;
+// 	camera->SetDistance ( slice ) ;
+//         std::cout << "lala" << std::endl;
+//         std::cout << cVoxel << std::endl;
+//         //segmentTract(inputsegIterate.GetIndex(), wmtractImage, faImage, pevImage, &iter_no);
+// 	std::cout << slice << " " << this->m_counter << std::endl ;
+// 	interactor->Render() ;
+//       }
+//     this->m_counter++ ;
 
-  }
+//   }
 
-  void SetTimerId ( int id )
-  {
-    this->m_timerId = id ;
-    this->m_counter = 0 ;
-  }
+//   void SetTimerId ( int id )
+//   {
+//     this->m_timerId = id ;
+//     this->m_counter = 0 ;
+//   }
 
-private:
-  int m_timerId ;
-  int m_counter ;
-} ;
+// private:
+//   int m_timerId ;
+//   int m_counter ;
+// } ;
 
 int main ( int argc, char * argv[] )
 {
@@ -250,10 +250,10 @@ int main ( int argc, char * argv[] )
   //vtkSmartPointer < vtkRenderWindowInteractor > interactor = vtkSmartPointer < vtkRenderWindowInteractor >::New() ;
   //interactor->SetRenderWindow ( renderWindow )
 
-  interactor->CreateRepeatingTimer( 300 ); //pk
-  vtkSmartPointer < CustomTimerCallback > myCallback = vtkSmartPointer < CustomTimerCallback >::New() ;
-  int timerId = interactor->AddObserver ( vtkCommand::TimerEvent, myCallback, 0 ) ;
-  myCallback->SetTimerId ( timerId ) ;
+  // interactor->CreateRepeatingTimer( 300 ); //pk
+  // vtkSmartPointer < CustomTimerCallback > myCallback = vtkSmartPointer < CustomTimerCallback >::New() ;
+  // int timerId = interactor->AddObserver ( vtkCommand::TimerEvent, myCallback, 0 ) ;
+  // myCallback->SetTimerId ( timerId ) ;
 
   // Run
   interactor->Start() ;
