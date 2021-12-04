@@ -6,6 +6,20 @@
 #include "itkTensorFractionalAnisotropyImageFilter.h"
 #include "itkVector.h"
 #include "itkImageIterator.h"
+#include "itkImageToVTKImageFilter.h"
+
+#include "vtkSmartPointer.h"
+#include "vtkImageSliceMapper.h"
+#include "vtkImageActor.h"
+#include "vtkRenderer.h"
+#include "vtkRenderWindow.h"
+#include "vtkRenderWindowInteractor.h"
+#include "vtkCamera.h"
+
+#include "vtkInteractorStyleImage.h"
+#include "vtkCommand.h"
+#include "vtkRendererCollection.h"
+#include "vtkImageProperty.h"
 
 //---Image Typedefs--//
 const unsigned int nDims = 3 ;   // Setup types
@@ -20,6 +34,9 @@ typedef itk::ImageRegionIterator < ImageType > InputImageIterator ;
 typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
 typedef itk::ImageRegionIterator <BaseImageType> BaseImageIteratorType ;
 typedef itk::TensorFractionalAnisotropyImageFilter <ImageType, BaseImageType> FAImageFilterType;
+typedef itk::ImageToVTKFilter <BaseImageType> BaseImageToVTKFilterType;
+typedef itk::ImageToVTKFilter <ImageType> ImageToVTKFilterType;
+
 
 // function to create a tracker image
 int CreateTrackerImage(BaseImageType::Pointer tracker, ImageType::Pointer img, ImageType::RegionType region){
@@ -117,7 +134,7 @@ int main ( int argc, char * argv[] )
   if( argc < 7 )
     {
       std::cerr << "Usage: " << std::endl ;
-      std::cerr << argv[0] << " inputFileImage inputSegmentedFile outputEigenVecFile outputFAImage outputTrackerFile outputSegmentedTrackerFile" << std::endl ; 
+      std::cerr << argv[0] << " inputFileImage inputSegmentedFile" << std::endl ; 
       return -1 ;
     }
 
@@ -202,7 +219,85 @@ int main ( int argc, char * argv[] )
   // pass input image as input
   faImageFilter -> SetInput(img);
   faImageFilter -> Update();
+  
+  BaseITKToVTKFilterType::Pointer  faItkToVtkFilter =  BaseITKToVTKFilterType::New();
+  faItkToVtkFilter -> SetInput(faImageFilter->GetOutput());
+  faItkToVtkFilter -> Update();
 
+  // VTK Portion of the code - visualization pipeline
+  // mapper
+  vtkSmartPointer < vtkImageSliceMapper > imageMapper = vtkSmartPointer < vtkImageSliceMapper > ::New() ;
+  imageMapper->SetInputData ( itkToVTKfilter->GetOutput() ) ;
+  imageMapper->SetOrientationToX () ;
+  imageMapper->SetSliceNumber ( 55 ) ;
+  std::cout << "default for atfocalpoint: " << imageMapper->GetSliceAtFocalPoint () << std::endl ;
+  std::cout << "default for faces camera: " << imageMapper->GetSliceFacesCamera () << std::endl ;
+  imageMapper->SliceAtFocalPointOn () ;
+  imageMapper->SliceFacesCameraOn () ;
+
+  vtkSmartPointer <vtkImageProperty> imageProperty = vtkSmartPointer <vtkImageProperty> :: New();
+
+  imageProperty -> SetColorWindow(1.0);
+  imageProperty -> SetColorLevel(0.5);
+
+
+  // actor 
+  vtkSmartPointer < vtkImageActor > imageActor = vtkSmartPointer < vtkImageActor > ::New() ;
+  imageActor->SetMapper ( imageMapper ) ;
+  imageActor -> SetProperty(imageProperty);
+  imageActor -> InterpolateOff();
+
+
+  // set up the scene, window, interactor
+  vtkSmartPointer < vtkRenderer > renderer = vtkSmartPointer < vtkRenderer >::New() ;
+  renderer->AddActor ( imageActor ) ;
+
+  // get camera so we can position  
+  vtkSmartPointer < vtkCamera > camera = renderer->GetActiveCamera() ;
+
+  double position[3],  imageCenter[3] ;
+  faItkToVtkFilter->GetOutput()->GetCenter ( imageCenter ) ;
+  position[0] = imageCenter[0] ;
+  position[1] = imageCenter[1] ;
+  position[2] = -160 ;
+  std::cout << "Image center: " << imageCenter[0] << " " << imageCenter[1] << " " << imageCenter[2] << std::endl ;
+  double spacing[3] ;
+  int imageDims[3] ;
+  faItkToVtkFilter->GetOutput()->GetSpacing ( spacing ) ;
+  faItkToVtkFilter->GetOutput()->GetDimensions ( imageDims ) ;
+  double imagePhysicalSize[3] ;
+  for ( unsigned int d = 0 ; d < 3 ; d++ )
+    {
+      imagePhysicalSize[d] = spacing[d] * imageDims[d] ;
+    }
+
+
+  camera->ParallelProjectionOn () ; 
+  camera->SetFocalPoint ( imageCenter ) ;
+  camera->SetPosition ( position ) ;
+  //  camera->SetDistance ( imagePhysicalSize[2] * -1 ) ;
+  std::cout << "Parallel scale: " << camera->GetParallelScale() << std::endl ;
+  std::cout << imageDims[0] << " " << imageDims[1] << " " << imageDims[2] << std::endl ;
+  camera->SetParallelScale ( imageDims[2] / 4 ) ;
+
+  // set up window
+  vtkSmartPointer < vtkRenderWindow > window = vtkSmartPointer < vtkRenderWindow >::New() ;
+  window->AddRenderer ( renderer ) ;
+  window->SetSize ( 500, 500 ) ;
+
+  vtkSmartPointer < vtkRenderWindowInteractor > interactor = vtkSmartPointer < vtkRenderWindowInteractor >::New() ;
+  interactor->SetRenderWindow ( window ) ;
+
+  vtkSmartPointer < vtkInteractorStyleImage > style = vtkSmartPointer < vtkInteractorStyleImage >::New() ;
+  //style->SetInteractionModeToImage3D() ;
+  style->SetInteractionModeToImageSlicing() ;
+
+  interactor->SetInteractorStyle ( style ) ;
+  interactor->Initialize() ;
+
+  //  interactor->DestroyTimer ( timerId ) ;
+  // run!
+  interactor->Start() ;  
 
   //------Voxel Tracking ------//
   std::cout << "Performing Voxel tracking for the Input Image" <<std::endl;
@@ -252,13 +347,6 @@ int main ( int argc, char * argv[] )
     ++segmentationIter;
   }
   
-
-  std::cout << "Writing Output Images" <<std::endl;
-  imageWriter<PAImageType>(paImage, argv[3]);
-  imageWriter<BaseImageType>(faImageFilter->GetOutput(), argv[4]);
-  imageWriter<BaseImageType>(trackerImage, argv[5]);
-  imageWriter<BaseImageType>(segmentedTrackerImage, argv[6]);
-
   // Done.
   return 0 ;
 }

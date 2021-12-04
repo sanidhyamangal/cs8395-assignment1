@@ -5,6 +5,9 @@ project (Tactography)
 find_package (ITK REQUIRED)
 include (${ITK_USE_FILE})
 
+find_package (VTK REQUIRED)
+include (${VTK_USE_FILE})
+
 add_executable (Tactography Tactography.cxx)
 
-target_link_libraries (Tactography ${ITK_LIBRARIES})
+target_link_libraries (Tactography ${ITK_LIBRARIES} ${VTK_LIBRARIES})
