@@ -9,6 +9,7 @@
 #include "itkVector.h"
 #include "itkImageIterator.h"
 
+#include <vtkPolyData.h>
 #include "vtkSmartPointer.h"
 #include "vtkImageSliceMapper.h"
 #include "vtkImageActor.h"
@@ -28,7 +29,7 @@
 #include "vtkCallbackCommand.h"
 #include "vtkProperty.h"
 #include "vtkSphereSource.h"
-#include "vtkPolyPointSource.h"
+#include <vtkPolyPointSource.h>
 #include "vtkTextActor.h"
 #include "vtkTextProperty.h"
 
