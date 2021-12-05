@@ -39,7 +39,8 @@ typedef itk::ImageRegionIterator < ImageType > InputImageIterator ;
 typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
 typedef itk::ImageRegionIterator <BaseImageType> BaseImageIteratorType ;
 typedef itk::TensorFractionalAnisotropyImageFilter <ImageType, BaseImageType> FAImageFilterType;
-typedef itk::ImageToVTKImageFilter <PAImageType> BaseImageToVTKFilterType;
+typedef itk::ImageToVTKImageFilter <BaseImageType> BaseImageToVTKFilterType;
+typedef itk::ImageToVTKImageFilter <PAImageType> PAImageToVTKFilterType;
 typedef itk::ImageToVTKImageFilter <ImageType> ImageToVTKFilterType;
 
 
@@ -225,16 +226,19 @@ int main ( int argc, char * argv[] )
   faImageFilter -> SetInput(img);
   faImageFilter -> Update();
   
-  typedef itk::ImageToVTKImageFilter < faImageType > faITKToVTKFilterType ;
-  faITKToVTKFilterType::Pointer faitkToVTKfilter = faITKToVTKFilterType::New() ;
-  faitkToVTKfilter->SetInput ( myfaITKImage ) ;
+  PAImageToVTKFilterType::Pointer paitkToVTKFilter = PAImageToVTKFilterType::New();
+  paitkToVTKFilter -> SetInput(paImage);
+  paitkToVTKFilter -> Update();
+
+  BaseImageToVTKFilterType::Pointer faitkToVTKfilter = BaseImageToVTKFilterType::New() ;
+  faitkToVTKfilter->SetInput ( faImageFilter -> GetOutput() ) ;
   faitkToVTKfilter->Update() ;
   faitkToVTKfilter->GetOutput() ;
   
   // VTK Portion of the code - visualization pipeline
   // mapper
   vtkSmartPointer < vtkImageSliceMapper > imageMapper = vtkSmartPointer < vtkImageSliceMapper > ::New() ;
-  imageMapper->SetInputData ( faitkToVTKfilter->GetOutput() ) ;
+  imageMapper->SetInputData ( paitkToVTKFilter->GetOutput() ) ;
   imageMapper->SetOrientationToX () ;
   imageMapper->SetSliceNumber ( 55 ) ;
   std::cout << "default for atfocalpoint: " << imageMapper->GetSliceAtFocalPoint () << std::endl ;
@@ -262,15 +266,15 @@ int main ( int argc, char * argv[] )
   vtkSmartPointer < vtkCamera > camera = renderer->GetActiveCamera() ;
 
   double position[3],  imageCenter[3] ;
-  faItkToVtkFilter->GetOutput()->GetCenter ( imageCenter ) ;
+  paitkToVTKFilter->GetOutput()->GetCenter ( imageCenter ) ;
   position[0] = imageCenter[0] ;
   position[1] = imageCenter[1] ;
   position[2] = -160 ;
   std::cout << "Image center: " << imageCenter[0] << " " << imageCenter[1] << " " << imageCenter[2] << std::endl ;
   double spacing[3] ;
   int imageDims[3] ;
-  faItkToVtkFilter->GetOutput()->GetSpacing ( spacing ) ;
-  faItkToVtkFilter->GetOutput()->GetDimensions ( imageDims ) ;
+  paitkToVTKFilter->GetOutput()->GetSpacing ( spacing ) ;
+  paitkToVTKFilter->GetOutput()->GetDimensions ( imageDims ) ;
   double imagePhysicalSize[3] ;
   for ( unsigned int d = 0 ; d < 3 ; d++ )
     {
