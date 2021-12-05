@@ -283,6 +283,11 @@ int main ( int argc, char * argv[] )
   faitkToVTKfilter->Update() ;
   faitkToVTKfilter->GetOutput() ;
   
+  BaseImageToVTKFilterType::Pointer wmitkToVTKfilter = BaseImageToVTKFilterType::New() ;
+  wmitkToVTKfilter -> SetInput(segmentedTrackerImage);
+  wmitkToVTKfilter -> Update();
+  
+
   // VTK Portion of the code - visualization pipeline
   // mapper
   vtkSmartPointer < vtkImageSliceMapper > faimageMapper = vtkSmartPointer < vtkImageSliceMapper > ::New() ;
@@ -294,6 +299,15 @@ int main ( int argc, char * argv[] )
   faimageMapper->SliceAtFocalPointOn () ;
   faimageMapper->SliceFacesCameraOn () ;
 
+  vtkSmartPointer < vtkImageSliceMapper > wmimageMapper = vtkSmartPointer < vtkImageSliceMapper > ::New() ;
+  wmimageMapper->SetInputData ( wmitkToVTKfilter->GetOutput() ) ;
+  wmimageMapper->SetOrientationToX () ;
+  wmimageMapper->SetSliceNumber ( 55 ) ;
+  std::cout << "default for atfocalpoint: " << wmimageMapper->GetSliceAtFocalPoint () << std::endl ;
+  std::cout << "default for faces camera: " << wmimageMapper->GetSliceFacesCamera () << std::endl ;
+  wmimageMapper->SliceAtFocalPointOn () ;
+  wmimageMapper->SliceFacesCameraOn () ;
+  
   // Set Image property to view the data
   vtkSmartPointer < vtkImageProperty > faimgProp = vtkSmartPointer <vtkImageProperty>::New() ;
   faimgProp->SetColorWindow(1.0) ;
@@ -306,10 +320,16 @@ int main ( int argc, char * argv[] )
   faimageActor->SetProperty( faimgProp ) ;
   faimageActor->InterpolateOff();
 
+  vtkSmartPointer < vtkImageActor > wmimageActor = vtkSmartPointer < vtkImageActor > ::New() ;
+  wmimageActor->SetMapper ( faimageMapper ) ;
+  wmimageActor->SetProperty( faimgProp ) ;
+  wmimageActor->InterpolateOff();
 
   // Set up the scene, window, interactor
   vtkSmartPointer < vtkRenderer > farenderer = vtkSmartPointer < vtkRenderer >::New() ;
   farenderer->AddActor ( faimageActor ) ;
+  farenderer -> AddActor(wmimageActor);
+  
 
   // Get the camera so we can position it better
   vtkSmartPointer < vtkCamera > camera = farenderer->GetActiveCamera() ;
