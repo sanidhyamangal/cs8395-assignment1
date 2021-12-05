@@ -39,7 +39,7 @@ typedef itk::ImageRegionIterator < ImageType > InputImageIterator ;
 typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
 typedef itk::ImageRegionIterator <BaseImageType> BaseImageIteratorType ;
 typedef itk::TensorFractionalAnisotropyImageFilter <ImageType, BaseImageType> FAImageFilterType;
-typedef itk::ImageToVTKImageFilter <BaseImageType> BaseImageToVTKFilterType;
+typedef itk::ImageToVTKImageFilter <PAImageType> BaseImageToVTKFilterType;
 typedef itk::ImageToVTKImageFilter <ImageType> ImageToVTKFilterType;
 
 
