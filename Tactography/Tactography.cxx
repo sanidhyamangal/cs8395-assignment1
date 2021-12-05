@@ -226,9 +226,8 @@ int main ( int argc, char * argv[] )
   faImageFilter -> SetInput(img);
   faImageFilter -> Update();
   
-  PAImageToVTKFilterType::Pointer paitkToVTKFilter = PAImageToVTKFilterType::New();
-  paitkToVTKFilter -> SetInput(paImage);
-  paitkToVTKFilter -> Update();
+  PAImageToVTKFilterType::Pointer itkToVTKfilter = PAImageToVTKFilterType::New();
+  itkToVTKfilter->SetInput ( paImage );itkToVTKfilter->Update() ;
 
   BaseImageToVTKFilterType::Pointer faitkToVTKfilter = BaseImageToVTKFilterType::New() ;
   faitkToVTKfilter->SetInput ( faImageFilter -> GetOutput() ) ;
@@ -238,7 +237,7 @@ int main ( int argc, char * argv[] )
   // VTK Portion of the code - visualization pipeline
   // mapper
   vtkSmartPointer < vtkImageSliceMapper > imageMapper = vtkSmartPointer < vtkImageSliceMapper > ::New() ;
-  imageMapper->SetInputData ( paitkToVTKFilter->GetOutput() ) ;
+  imageMapper->SetInputData ( itkToVTKfilter->GetOutput() ) ;
   imageMapper->SetOrientationToX () ;
   imageMapper->SetSliceNumber ( 55 ) ;
   std::cout << "default for atfocalpoint: " << imageMapper->GetSliceAtFocalPoint () << std::endl ;
@@ -246,6 +245,7 @@ int main ( int argc, char * argv[] )
   imageMapper->SliceAtFocalPointOn () ;
   imageMapper->SliceFacesCameraOn () ;
 
+  // Image property //pk
   vtkSmartPointer < vtkImageProperty > image_property = vtkSmartPointer <vtkImageProperty>::New() ;
   image_property->SetColorWindow(1.0) ;
   image_property->SetColorLevel(0.5) ;
@@ -262,19 +262,19 @@ int main ( int argc, char * argv[] )
   vtkSmartPointer < vtkRenderer > renderer = vtkSmartPointer < vtkRenderer >::New() ;
   renderer->AddActor ( imageActor ) ;
 
-  // get camera so we can position  
+  // Get the camera so we can position it better
   vtkSmartPointer < vtkCamera > camera = renderer->GetActiveCamera() ;
 
   double position[3],  imageCenter[3] ;
-  paitkToVTKFilter->GetOutput()->GetCenter ( imageCenter ) ;
+  itkToVTKfilter->GetOutput()->GetCenter ( imageCenter ) ;
   position[0] = imageCenter[0] ;
   position[1] = imageCenter[1] ;
   position[2] = -160 ;
   std::cout << "Image center: " << imageCenter[0] << " " << imageCenter[1] << " " << imageCenter[2] << std::endl ;
   double spacing[3] ;
   int imageDims[3] ;
-  paitkToVTKFilter->GetOutput()->GetSpacing ( spacing ) ;
-  paitkToVTKFilter->GetOutput()->GetDimensions ( imageDims ) ;
+  itkToVTKfilter->GetOutput()->GetSpacing ( spacing ) ;
+  itkToVTKfilter->GetOutput()->GetDimensions ( imageDims ) ;
   double imagePhysicalSize[3] ;
   for ( unsigned int d = 0 ; d < 3 ; d++ )
     {
@@ -282,30 +282,30 @@ int main ( int argc, char * argv[] )
     }
 
 
-  camera->ParallelProjectionOn () ; 
+  camera->ParallelProjectionOn () ;
   camera->SetFocalPoint ( imageCenter ) ;
   camera->SetPosition ( position ) ;
-  //  camera->SetDistance ( imagePhysicalSize[2] * -1 ) ;
   std::cout << "Parallel scale: " << camera->GetParallelScale() << std::endl ;
   std::cout << imageDims[0] << " " << imageDims[1] << " " << imageDims[2] << std::endl ;
-  camera->SetParallelScale ( imageDims[2] / 4 ) ;
+  camera->SetParallelScale ( imageDims[2] * 2) ;
 
-  // set up window
+  // Set up window
   vtkSmartPointer < vtkRenderWindow > window = vtkSmartPointer < vtkRenderWindow >::New() ;
   window->AddRenderer ( renderer ) ;
   window->SetSize ( 500, 500 ) ;
 
+  // Create the interactor
   vtkSmartPointer < vtkRenderWindowInteractor > interactor = vtkSmartPointer < vtkRenderWindowInteractor >::New() ;
   interactor->SetRenderWindow ( window ) ;
 
   vtkSmartPointer < vtkInteractorStyleImage > style = vtkSmartPointer < vtkInteractorStyleImage >::New() ;
-  //style->SetInteractionModeToImage3D() ;
+  // style->SetInteractionModeToImage3D() ; //pk
   style->SetInteractionModeToImageSlicing() ;
 
   interactor->SetInteractorStyle ( style ) ;
   interactor->Initialize() ;
 
-  // Polydata object for WM tract
+ // Polydata object for WM tract
   vtkSmartPointer<vtkPolyData> WMtract = vtkSmartPointer<vtkPolyData>::New() ;
   // Line, points and colors
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New() ;
@@ -327,6 +327,8 @@ int main ( int argc, char * argv[] )
   //  interactor->DestroyTimer ( timerId ) ;
   // run!
   interactor->Start() ;  
+  return 0;
+  
 
   //------Voxel Tracking ------//
   std::cout << "Performing Voxel tracking for the Input Image" <<std::endl;
