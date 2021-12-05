@@ -224,110 +224,7 @@ int main ( int argc, char * argv[] )
   FAImageFilterType::Pointer faImageFilter = FAImageFilterType::New();
   // pass input image as input
   faImageFilter -> SetInput(img);
-  faImageFilter -> Update();
-  
-  PAImageToVTKFilterType::Pointer itkToVTKfilter = PAImageToVTKFilterType::New();
-  itkToVTKfilter->SetInput ( paImage );itkToVTKfilter->Update() ;
-
-  BaseImageToVTKFilterType::Pointer faitkToVTKfilter = BaseImageToVTKFilterType::New() ;
-  faitkToVTKfilter->SetInput ( faImageFilter -> GetOutput() ) ;
-  faitkToVTKfilter->Update() ;
-  faitkToVTKfilter->GetOutput() ;
-  
-  // VTK Portion of the code - visualization pipeline
-  // mapper
-  vtkSmartPointer < vtkImageSliceMapper > imageMapper = vtkSmartPointer < vtkImageSliceMapper > ::New() ;
-  imageMapper->SetInputData ( itkToVTKfilter->GetOutput() ) ;
-  imageMapper->SetOrientationToX () ;
-  imageMapper->SetSliceNumber ( 55 ) ;
-  std::cout << "default for atfocalpoint: " << imageMapper->GetSliceAtFocalPoint () << std::endl ;
-  std::cout << "default for faces camera: " << imageMapper->GetSliceFacesCamera () << std::endl ;
-  imageMapper->SliceAtFocalPointOn () ;
-  imageMapper->SliceFacesCameraOn () ;
-
-  // Image property //pk
-  vtkSmartPointer < vtkImageProperty > image_property = vtkSmartPointer <vtkImageProperty>::New() ;
-  image_property->SetColorWindow(1.0) ;
-  image_property->SetColorLevel(0.5) ;
-
-
-  // Actor
-  vtkSmartPointer < vtkImageActor > imageActor = vtkSmartPointer < vtkImageActor > ::New() ;
-  imageActor->SetMapper ( imageMapper ) ;
-  imageActor->SetProperty( image_property ) ; //pk
-  imageActor->InterpolateOff(); //pk
-
-
-  // Set up the scene, window, interactor
-  vtkSmartPointer < vtkRenderer > renderer = vtkSmartPointer < vtkRenderer >::New() ;
-  renderer->AddActor ( imageActor ) ;
-
-  // Get the camera so we can position it better
-  vtkSmartPointer < vtkCamera > camera = renderer->GetActiveCamera() ;
-
-  double position[3],  imageCenter[3] ;
-  itkToVTKfilter->GetOutput()->GetCenter ( imageCenter ) ;
-  position[0] = imageCenter[0] ;
-  position[1] = imageCenter[1] ;
-  position[2] = -160 ;
-  std::cout << "Image center: " << imageCenter[0] << " " << imageCenter[1] << " " << imageCenter[2] << std::endl ;
-  double spacing[3] ;
-  int imageDims[3] ;
-  itkToVTKfilter->GetOutput()->GetSpacing ( spacing ) ;
-  itkToVTKfilter->GetOutput()->GetDimensions ( imageDims ) ;
-  double imagePhysicalSize[3] ;
-  for ( unsigned int d = 0 ; d < 3 ; d++ )
-    {
-      imagePhysicalSize[d] = spacing[d] * imageDims[d] ;
-    }
-
-
-  camera->ParallelProjectionOn () ;
-  camera->SetFocalPoint ( imageCenter ) ;
-  camera->SetPosition ( position ) ;
-  std::cout << "Parallel scale: " << camera->GetParallelScale() << std::endl ;
-  std::cout << imageDims[0] << " " << imageDims[1] << " " << imageDims[2] << std::endl ;
-  camera->SetParallelScale ( imageDims[2] * 2) ;
-
-  // Set up window
-  vtkSmartPointer < vtkRenderWindow > window = vtkSmartPointer < vtkRenderWindow >::New() ;
-  window->AddRenderer ( renderer ) ;
-  window->SetSize ( 500, 500 ) ;
-
-  // Create the interactor
-  vtkSmartPointer < vtkRenderWindowInteractor > interactor = vtkSmartPointer < vtkRenderWindowInteractor >::New() ;
-  interactor->SetRenderWindow ( window ) ;
-
-  vtkSmartPointer < vtkInteractorStyleImage > style = vtkSmartPointer < vtkInteractorStyleImage >::New() ;
-  // style->SetInteractionModeToImage3D() ; //pk
-  style->SetInteractionModeToImageSlicing() ;
-
-  interactor->SetInteractorStyle ( style ) ;
-  interactor->Initialize() ;
-
- // Polydata object for WM tract
-  vtkSmartPointer<vtkPolyData> WMtract = vtkSmartPointer<vtkPolyData>::New() ;
-  // Line, points and colors
-  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New() ;
-  WMtract->SetPoints( points ) ;
-  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-  WMtract->SetLines( lines ) ;
-  vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
-  colors->SetNumberOfComponents( 3 );
-  WMtract->GetCellData()->SetScalars( colors ) ;
-  // Mapper, actor and renderer
-  vtkSmartPointer<vtkPolyDataMapper> wmmapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-  wmmapper->SetInputData(WMtract);
-  vtkSmartPointer<vtkActor> wmactor = vtkSmartPointer<vtkActor>::New();
-  wmactor->SetMapper(wmmapper);
-  vtkSmartPointer < vtkRenderer > wmrenderer = vtkSmartPointer < vtkRenderer >::New() ;
-  wmrenderer->AddActor(wmactor);
-  wmrenderer->SetBackground(1, 1, 1);
-
-  //  interactor->DestroyTimer ( timerId ) ;
-  // run!
-  interactor->Start() ;  
-  return 0;
+  faImageFilter -> Update();  
   
 
   //------Voxel Tracking ------//
@@ -378,6 +275,108 @@ int main ( int argc, char * argv[] )
     ++segmentationIter;
   }
   
+  PAImageToVTKFilterType::Pointer paitkToVTKfilter = PAImageToVTKFilterType::New();
+  paitkToVTKfilter->SetInput ( paImage );paitkToVTKfilter->Update() ;
+
+  BaseImageToVTKFilterType::Pointer faitkToVTKfilter = BaseImageToVTKFilterType::New() ;
+  faitkToVTKfilter->SetInput ( faImageFilter -> GetOutput() ) ;
+  faitkToVTKfilter->Update() ;
+  faitkToVTKfilter->GetOutput() ;
+  
+  // VTK Portion of the code - visualization pipeline
+  // mapper
+  vtkSmartPointer < vtkImageSliceMapper > faimageMapper = vtkSmartPointer < vtkImageSliceMapper > ::New() ;
+  faimageMapper->SetInputData ( paitkToVTKfilter->GetOutput() ) ;
+  faimageMapper->SetOrientationToX () ;
+  faimageMapper->SetSliceNumber ( 55 ) ;
+  std::cout << "default for atfocalpoint: " << faimageMapper->GetSliceAtFocalPoint () << std::endl ;
+  std::cout << "default for faces camera: " << faimageMapper->GetSliceFacesCamera () << std::endl ;
+  faimageMapper->SliceAtFocalPointOn () ;
+  faimageMapper->SliceFacesCameraOn () ;
+
+  // Set Image property to view the data
+  vtkSmartPointer < vtkImageProperty > faimgProp = vtkSmartPointer <vtkImageProperty>::New() ;
+  faimgProp->SetColorWindow(1.0) ;
+  faimgProp->SetColorLevel(0.5) ;
+
+
+  // Actor
+  vtkSmartPointer < vtkImageActor > faimageActor = vtkSmartPointer < vtkImageActor > ::New() ;
+  faimageActor->SetMapper ( faimageMapper ) ;
+  faimageActor->SetProperty( faimgProp ) ;
+  faimageActor->InterpolateOff();
+
+
+  // Set up the scene, window, interactor
+  vtkSmartPointer < vtkRenderer > farenderer = vtkSmartPointer < vtkRenderer >::New() ;
+  farenderer->AddActor ( faimageActor ) ;
+
+  // Get the camera so we can position it better
+  vtkSmartPointer < vtkCamera > camera = farenderer->GetActiveCamera() ;
+
+  double position[3],  imageCenter[3] ;
+  paitkToVTKfilter->GetOutput()->GetCenter ( imageCenter ) ;
+  position[0] = imageCenter[0] ;
+  position[1] = imageCenter[1] ;
+  position[2] = -160 ;
+  std::cout << "Image center: " << imageCenter[0] << " " << imageCenter[1] << " " << imageCenter[2] << std::endl ;
+  double spacing[3] ;
+  int imageDims[3] ;
+  paitkToVTKfilter->GetOutput()->GetSpacing ( spacing ) ;
+  paitkToVTKfilter->GetOutput()->GetDimensions ( imageDims ) ;
+  double imagePhysicalSize[3] ;
+  for ( unsigned int d = 0 ; d < 3 ; d++ )
+    {
+      imagePhysicalSize[d] = spacing[d] * imageDims[d] ;
+    }
+
+
+  camera->ParallelProjectionOn () ;
+  camera->SetFocalPoint ( imageCenter ) ;
+  camera->SetPosition ( position ) ;
+  std::cout << "Parallel scale: " << camera->GetParallelScale() << std::endl ;
+  std::cout << imageDims[0] << " " << imageDims[1] << " " << imageDims[2] << std::endl ;
+  camera->SetParallelScale ( imageDims[2] * 2) ;
+
+  // Set up window
+  vtkSmartPointer < vtkRenderWindow > window = vtkSmartPointer < vtkRenderWindow >::New() ;
+  window->AddRenderer ( farenderer ) ;
+  window->SetSize ( 500, 500 ) ;
+
+  // Create the interactor
+  vtkSmartPointer < vtkRenderWindowInteractor > interactor = vtkSmartPointer < vtkRenderWindowInteractor >::New() ;
+  interactor->SetRenderWindow ( window ) ;
+
+  vtkSmartPointer < vtkInteractorStyleImage > style = vtkSmartPointer < vtkInteractorStyleImage >::New() ;
+  // style->SetInteractionModeToImage3D() ; //pk
+  style->SetInteractionModeToImageSlicing() ;
+
+  interactor->SetInteractorStyle ( style ) ;
+  interactor->Initialize() ;
+
+ // Polydata object for WM tract
+  vtkSmartPointer<vtkPolyData> WMtract = vtkSmartPointer<vtkPolyData>::New() ;
+  // Line, points and colors
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New() ;
+  WMtract->SetPoints( points ) ;
+  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+  WMtract->SetLines( lines ) ;
+  vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
+  colors->SetNumberOfComponents( 3 );
+  WMtract->GetCellData()->SetScalars( colors ) ;
+  // Mapper, actor and farenderer
+  vtkSmartPointer<vtkPolyDataMapper> wmmapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  wmmapper->SetInputData(WMtract);
+  vtkSmartPointer<vtkActor> wmactor = vtkSmartPointer<vtkActor>::New();
+  wmactor->SetMapper(wmmapper);
+  vtkSmartPointer < vtkRenderer > wmrenderer = vtkSmartPointer < vtkRenderer >::New() ;
+  wmrenderer->AddActor(wmactor);
+  wmrenderer->SetBackground(1, 1, 1);
+
+  //  interactor->DestroyTimer ( timerId ) ;
+  // run!
+  interactor->Start() ;
+
   // Done.
   return 0 ;
 }
