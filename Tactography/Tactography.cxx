@@ -9,6 +9,7 @@
 #include "itkVector.h"
 #include "itkImageIterator.h"
 
+#include <vtkPolyData.h>
 #include "vtkSmartPointer.h"
 #include "vtkImageSliceMapper.h"
 #include "vtkImageActor.h"
@@ -28,7 +29,7 @@
 #include "vtkCallbackCommand.h"
 #include "vtkProperty.h"
 #include "vtkSphereSource.h"
-#include "vtkPointSource.h"
+#include <vtkPolyPointSource.h>
 #include "vtkTextActor.h"
 #include "vtkTextProperty.h"
 
@@ -358,7 +359,7 @@ int main ( int argc, char * argv[] )
   if (seedOrSeg == 2){
       globalList = myResults.segmenttrackPixelList;
   }
-  vtkNew<vtkPointSource> polypointSource;
+  vtkNew<vtkPolyPointSource> polypointSource;
 
   ImageType::IndexType thisIndex;
   for (std::list<ImageType::IndexType>::iterator it = globalList.begin(); it!=globalList.end(); it++){
@@ -477,5 +478,3 @@ int main ( int argc, char * argv[] )
   // Done.
   return 0 ;
 }
-
-
