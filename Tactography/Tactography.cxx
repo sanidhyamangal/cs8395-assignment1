@@ -223,7 +223,8 @@ int main ( int argc, char * argv[] )
   BaseImageToVTKFilterType::Pointer  faItkToVtkFilter =  BaseImageToVTKFilterType::New();
   faItkToVtkFilter -> SetInput(faImageFilter->GetOutput());
   faItkToVtkFilter -> Update();
-
+  faItkToVtkFilter -> GetOutput();
+  
   // VTK Portion of the code - visualization pipeline
   // mapper
   vtkSmartPointer < vtkImageSliceMapper > imageMapper = vtkSmartPointer < vtkImageSliceMapper > ::New() ;
