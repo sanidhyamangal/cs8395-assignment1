@@ -327,7 +327,7 @@ int main ( int argc, char * argv[] )
 
   // Set up the scene, window, interactor
   vtkSmartPointer < vtkRenderer > farenderer = vtkSmartPointer < vtkRenderer >::New() ;
-  // farenderer->AddActor ( faimageActor ) ;
+  farenderer->AddActor ( faimageActor ) ;
   farenderer -> AddActor(wmimageActor);
   
 
