@@ -327,9 +327,9 @@ int main ( int argc, char * argv[] )
 
   // Set up the scene, window, interactor
   vtkSmartPointer < vtkRenderer > farenderer = vtkSmartPointer < vtkRenderer >::New() ;
-  farenderer->AddActor ( faimageActor ) ;
+  // farenderer->AddActor ( faimageActor ) ;
   farenderer -> AddActor(wmimageActor);
-  
+
 
   // Get the camera so we can position it better
   vtkSmartPointer < vtkCamera > camera = farenderer->GetActiveCamera() ;
@@ -375,23 +375,23 @@ int main ( int argc, char * argv[] )
   interactor->Initialize() ;
 
  // Polydata object for WM tract
-  vtkSmartPointer<vtkPolyData> WMtract = vtkSmartPointer<vtkPolyData>::New() ;
-  // Line, points and colors
-  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New() ;
-  WMtract->SetPoints( points ) ;
-  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-  WMtract->SetLines( lines ) ;
-  vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
-  colors->SetNumberOfComponents( 3 );
-  WMtract->GetCellData()->SetScalars( colors ) ;
-  // Mapper, actor and farenderer
-  vtkSmartPointer<vtkPolyDataMapper> wmmapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-  wmmapper->SetInputData(WMtract);
-  vtkSmartPointer<vtkActor> wmactor = vtkSmartPointer<vtkActor>::New();
-  wmactor->SetMapper(wmmapper);
-  vtkSmartPointer < vtkRenderer > wmrenderer = vtkSmartPointer < vtkRenderer >::New() ;
-  wmrenderer->AddActor(wmactor);
-  wmrenderer->SetBackground(1, 1, 1);
+  // vtkSmartPointer<vtkPolyData> WMtract = vtkSmartPointer<vtkPolyData>::New() ;
+  // // Line, points and colors
+  // vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New() ;
+  // WMtract->SetPoints( points ) ;
+  // vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+  // WMtract->SetLines( lines ) ;
+  // vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
+  // colors->SetNumberOfComponents( 3 );
+  // WMtract->GetCellData()->SetScalars( colors ) ;
+  // // Mapper, actor and farenderer
+  // vtkSmartPointer<vtkPolyDataMapper> wmmapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  // wmmapper->SetInputData(WMtract);
+  // vtkSmartPointer<vtkActor> wmactor = vtkSmartPointer<vtkActor>::New();
+  // wmactor->SetMapper(wmmapper);
+  // vtkSmartPointer < vtkRenderer > wmrenderer = vtkSmartPointer < vtkRenderer >::New() ;
+  // wmrenderer->AddActor(wmactor);
+  // wmrenderer->SetBackground(1, 1, 1);
 
   //  interactor->DestroyTimer ( timerId ) ;
   // run!
