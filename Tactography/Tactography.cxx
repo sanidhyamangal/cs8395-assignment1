@@ -36,6 +36,7 @@
 #include "vtkRendererCollection.h"
 #include "vtkImageData.h"
 #include "vtkNamedColors.h"
+#include "vtkPolyData.h"
 
 
 
@@ -238,7 +239,7 @@ public:
       this->Interactor->GetRenderWindow()->GetRenderers()->GetFirstRenderer()->AddActor(sphereActor);
 
       //---POLYPOINTSOURCE---//
-      vtkSmartPointer <vtkPointSource> polypointSource = vtkSmartPointer <vtkPointSource> :: New();
+      vtkSmartPointer <vtkPolyData> polypointSource = vtkSmartPointer <vtkPolyData> :: New();
       std::list<ImageType::IndexType> globalList =  allClickLists[globalNumClicks];
 
       ImageType::IndexType thisIndex;
