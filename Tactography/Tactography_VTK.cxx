@@ -44,6 +44,7 @@ typedef itk::ImageToVTKImageFilter <PAImageType> PAImageToVTKFilterType;
 typedef itk::ImageToVTKImageFilter <ImageType> ImageToVTKFilterType;
 
 
+
 // function to create a tracker image
 int CreateTrackerImage(BaseImageType::Pointer tracker, ImageType::Pointer img, ImageType::RegionType region){
   tracker->SetOrigin(img->GetOrigin() ) ;
@@ -76,7 +77,7 @@ ImageType::IndexType computeNewIdx(VectorType thisVector, double delta, ImageTyp
   return newLoc;
 }
 
-int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, BaseImageType::Pointer trackerImage, ImageType::IndexType curLoc ,double delta, int iter){
+int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, BaseImageType::Pointer trackerImage, ImageType::IndexType curLoc ,double delta, int iter, std::list<ImageType::IndexType> & trackerList){
   // stopping conditions
   // if location is outside of the image
   
@@ -101,6 +102,7 @@ int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, 
 
   // mark the pixel in tracker image as visited
   trackerImage -> SetPixel(curLoc, 1.0);
+  trackerList.push_back(curLoc);
   iter++;
 
   VectorType thisVector ;
@@ -111,8 +113,8 @@ int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, 
   ImageType::IndexType backward = computeNewIdx(thisVector, delta, curLoc, false);
 
   // make recursive calls to track image
-  traverseImage(faImage, paImage, trackerImage, forward, delta, iter);
-  traverseImage(faImage, paImage, trackerImage, backward, delta, iter);
+  traverseImage(faImage, paImage, trackerImage, forward, delta, iter,trackerList);
+  traverseImage(faImage, paImage, trackerImage, backward, delta, iter,trackerList);
 
 }
 
@@ -245,8 +247,9 @@ int main ( int argc, char * argv[] )
   ImageType::IndexType currLoc = seed;
   ImageType::IndexType newLoc = seed;
 
+  std::list<ImageType::IndexType> seedTrackerList;
   // start image traversal for the images
-  traverseImage(faImageFilter -> GetOutput(), paImage, trackerImage, currLoc, delta, iter);
+  traverseImage(faImageFilter -> GetOutput(), paImage, trackerImage, currLoc, delta, iter, seedTrackerList);
   
   // ---- Perform Segmentation Task ---- //
   std::cout << "Loading Segmentation Image" <<std::endl;
@@ -266,11 +269,13 @@ int main ( int argc, char * argv[] )
   BaseImageIteratorType segmentationIter (segmentedImage, newRegion);
   segmentationIter.GoToBegin();
 
+  std::list<ImageType::IndexType> segmentedTrackerList;
+
   while (!segmentationIter.IsAtEnd())
   {
     if (segmentationIter.Value() == 1.0){
       int iter = 0;
-      traverseImage(faImageFilter -> GetOutput(), paImage, segmentedTrackerImage, segmentationIter.GetIndex(), delta, iter);
+      traverseImage(faImageFilter -> GetOutput(), paImage, segmentedTrackerImage, segmentationIter.GetIndex(), delta, iter, segmentedTrackerList);
     }
     ++segmentationIter;
   }
