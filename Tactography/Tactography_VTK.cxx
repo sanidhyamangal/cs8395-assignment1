@@ -50,6 +50,38 @@ typedef itk::ImageToVTKImageFilter <ImageType> ImageToVTKFilterType;
 vtkNew<vtkPoints> points;
 std::list<ImageType::IndexType> globalList;
 
+// namespace {
+
+// unsigned int counter = 0;
+// unsigned int maxCount = 1000000;
+
+// void AdjustPoints(void* arguments)
+// {
+//    vtkProgrammableFilter* programmableFilter = static_cast<vtkProgrammableFilter*>(arguments);
+  
+//    vtkPoints* inPts = programmableFilter->GetPolyDataInput()->GetPoints();
+//    vtkIdType numPts = inPts->GetNumberOfPoints();
+//    vtkNew<vtkPoints> newPts;
+//    newPts->SetNumberOfPoints(numPts);
+
+//    double p[3];
+//    for (int i=0; i<numPts; i++){
+//      if (i < counter+1){
+//      points->GetPoint(i, p);
+//      newPts->SetPoint(i, p);
+//      }
+//      else {
+//       inPts->GetPoint(i,p);
+//       newPts->SetPoint(i,p);
+//      }
+//    }
+
+//     programmableFilter->GetPolyDataOutput()->CopyStructure(programmableFilter->GetPolyDataInput());
+//     programmableFilter->GetPolyDataOutput()->SetPoints(newPts);
+//     std::cout<<"Iteration: " << counter << ", Number of Points: "<< numPts << std::endl;
+// }
+
+// } // namespace
 
 
 // function to create a tracker image
@@ -286,18 +318,46 @@ int main ( int argc, char * argv[] )
     }
     ++segmentationIter;
   }
+
+
+  // reterive all the points and set it into a global list
+  ImageType::IndexType thisIndex;
+  for (std::list<ImageType::IndexType>::iterator it = segmentedTrackerList.begin(); it != segmentedTrackerList.end(); it++){
+    thisIndex = *it;
+    points -> InsertNextPoint(thisIndex[0], thisIndex[1], thisIndex[2]);
+  }
+
+  // create a current initializer
+  vtkNew<vtkPoints> initialPoints;
+  std::list<ImageType::IndexType>::iterator it = segmentedTrackerList.begin();
+  thisIndex = *it;
+  for (std::list<ImageType::IndexType>::iterator it = globalList.begin(); it!=globalList.end(); it++){
+    initialPoints->InsertNextPoint(thisIndex[0], thisIndex[1], thisIndex[2]);
+  }
+
+  // create a poly data type for creation of mesh
+  vtkNew<vtkPolyData> polyPoints;
+  polyPoints -> SetPoints(initialPoints);
+  // polyPoints -> Update();
   
-  PAImageToVTKFilterType::Pointer paitkToVTKfilter = PAImageToVTKFilterType::New();
-  paitkToVTKfilter->SetInput ( paImage );paitkToVTKfilter->Update() ;
+  // vtkNew<vtkProgrammableFilter> programmableFilter;
+  // programmableFilter->SetInputConnetion(polypointSource->GetOutputPort());
+  // programmableFilter->SetExecuteMethod(AdjustPoints, programmableFilter);
+
+  vtkSmartPointer < vtkPolyDataMapper > polyMapper = vtkSmartPointer < vtkPolyDataMapper > ::New() ;
+  polyMapper->SetInputData(polyPoints) ;
+  vtkSmartPointer < vtkActor > actor = vtkSmartPointer < vtkActor >::New() ;
+  actor->SetMapper(polyMapper);
+
+  // create a scene that keeps track of all the actors in the workspace
+  vtkSmartPointer < vtkRenderer > renderer = vtkSmartPointer < vtkRenderer >::New() ;
+  renderer->AddActor ( actor ) ;
 
   BaseImageToVTKFilterType::Pointer faitkToVTKfilter = BaseImageToVTKFilterType::New() ;
   faitkToVTKfilter->SetInput ( faImageFilter -> GetOutput() ) ;
   faitkToVTKfilter->Update() ;
   faitkToVTKfilter->GetOutput() ;
-  
-  BaseImageToVTKFilterType::Pointer wmitkToVTKfilter = BaseImageToVTKFilterType::New() ;
-  wmitkToVTKfilter -> SetInput(segmentedTrackerImage);
-  wmitkToVTKfilter -> Update();
+
   
   //---IMAGESLICE---//
   vtkSmartPointer < vtkImageSliceMapper > imageMapper = vtkSmartPointer < vtkImageSliceMapper > ::New() ;
@@ -316,7 +376,7 @@ int main ( int argc, char * argv[] )
   // VTK Portion of the code - visualization pipeline
   // mapper
   vtkSmartPointer < vtkImageSliceMapper > faimageMapper = vtkSmartPointer < vtkImageSliceMapper > ::New() ;
-  faimageMapper->SetInputData ( paitkToVTKfilter->GetOutput() ) ;
+  faimageMapper->SetInputData ( faitkToVTKfilter->GetOutput() ) ;
   faimageMapper->SetOrientationToX () ;
   faimageMapper->SetSliceNumber ( 55 ) ;
   std::cout << "default for atfocalpoint: " << faimageMapper->GetSliceAtFocalPoint () << std::endl ;
@@ -356,10 +416,22 @@ int main ( int argc, char * argv[] )
 	  camera->SetPosition ( position ) ;
 	  camera->SetParallelScale ( imageDims[2] / 0.8 ) ;
   
+  //---RENDER2CAMERA---//
+    double thisIndexFP[3], thisIndexPosition[3];
+    thisIndexFP[0] = thisIndex[0]; thisIndexFP[1] = thisIndex[1]; thisIndexFP[2] = thisIndex[2];
+    thisIndexPosition[0] = thisIndexFP[0]; thisIndexPosition[1] = thisIndexFP[1];
+    thisIndexPosition[2] = -160;
+  	renderer->ResetCamera();
+  	camera = renderer->GetActiveCamera();
+    camera->ParallelProjectionOn () ; 
+    camera->SetFocalPoint ( thisIndexFP ) ;
+    camera->SetPosition ( thisIndexPosition ) ;
+    camera->SetParallelScale ( imageDims[2] / 0.8 );
+  
   //---WINDOW---//
   vtkSmartPointer < vtkRenderWindow > window = vtkSmartPointer < vtkRenderWindow >::New() ;
   window->AddRenderer ( farenderer ) ;
-  // window->AddRenderer ( renderer2 );
+  // window->AddRenderer ( renderer );
   window->SetSize ( 1000, 500 ) ;
   window->Render();
 
