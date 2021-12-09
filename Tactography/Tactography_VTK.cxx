@@ -92,18 +92,19 @@ void MyTimerCallBack(vtkObject* caller,
                            void* clientData, void* vtkNotUsed(callData))
 {
 
-  auto programmableFilter = static_cast<vtkProgrammableFilter*>(clientData);
+  vtkRenderWindowInteractor* interactor =
+      dynamic_cast<vtkRenderWindowInteractor*>(caller);
 
-  vtkRenderWindowInteractor* iren =
-      static_cast<vtkRenderWindowInteractor*>(caller);
+  auto myFilter = static_cast<vtkProgrammableFilter*>(clientData);
 
-  programmableFilter->Modified();
 
-  iren->Render();
+  myFilter->Modified();
+
+  interactor->Render();
 
   if (count > maxCount)
   {
-    iren->DestroyTimer();
+    interactor->DestroyTimer();
   }
 
   count++;
