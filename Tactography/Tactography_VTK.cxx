@@ -28,6 +28,8 @@
 #include "vtkImageSlice.h"
 #include "vtkNew.h"
 #include "vtkInteractorStyleImage.h"
+#include "vtkProgrammableFilter.h"
+#include "vtkCallbackCommand.h"
 
 //---Image Typedefs--//
 const unsigned int nDims = 3 ;   // Setup types
@@ -50,39 +52,63 @@ typedef itk::ImageToVTKImageFilter <ImageType> ImageToVTKFilterType;
 vtkNew<vtkPoints> points;
 std::list<ImageType::IndexType> globalList;
 
-// namespace {
+namespace {
+void MyTimerCallBack(vtkObject* caller, long unsigned int eventId,
+                           void* clientData, void* callData);
 
-// unsigned int counter = 0;
-// unsigned int maxCount = 1000000;
+unsigned int count = 0;
+unsigned int maxCount = 1000000;
 
-// void AdjustPoints(void* arguments)
-// {
-//    vtkProgrammableFilter* programmableFilter = static_cast<vtkProgrammableFilter*>(arguments);
+void AdjustPoints(void* arguments)
+{
+   vtkProgrammableFilter* myFilter = static_cast<vtkProgrammableFilter*>(arguments);
   
-//    vtkPoints* inPts = programmableFilter->GetPolyDataInput()->GetPoints();
-//    vtkIdType numPts = inPts->GetNumberOfPoints();
-//    vtkNew<vtkPoints> newPts;
-//    newPts->SetNumberOfPoints(numPts);
+   vtkPoints* inPts = myFilter->GetPolyDataInput()->GetPoints();
+   vtkIdType numPts = inPts->GetNumberOfPoints();
+   vtkNew<vtkPoints> nPts;
+   nPts->SetNumberOfPoints(numPts);
 
-//    double p[3];
-//    for (int i=0; i<numPts; i++){
-//      if (i < counter+1){
-//      points->GetPoint(i, p);
-//      newPts->SetPoint(i, p);
-//      }
-//      else {
-//       inPts->GetPoint(i,p);
-//       newPts->SetPoint(i,p);
-//      }
-//    }
+   double pt[3];
+   for (int i=0; i<numPts; i++){
+     if (i < count+1){
+     points->GetPoint(i, pt);
+     nPts->SetPoint(i, pt);
+     }
+     else {
+      inPts->GetPoint(i,pt);
+      nPts->SetPoint(i,pt);
+     }
+   }
 
-//     programmableFilter->GetPolyDataOutput()->CopyStructure(programmableFilter->GetPolyDataInput());
-//     programmableFilter->GetPolyDataOutput()->SetPoints(newPts);
-//     std::cout<<"Iteration: " << counter << ", Number of Points: "<< numPts << std::endl;
-// }
+    myFilter->GetPolyDataOutput()->CopyStructure(myFilter->GetPolyDataInput());
+    myFilter->GetPolyDataOutput()->SetPoints(nPts);
+}
 
-// } // namespace
+} // namespace
 
+namespace {
+void MyTimerCallBack(vtkObject* caller,
+                           long unsigned int vtkNotUsed(eventId),
+                           void* clientData, void* vtkNotUsed(callData))
+{
+
+  auto programmableFilter = static_cast<vtkProgrammableFilter*>(clientData);
+
+  vtkRenderWindowInteractor* iren =
+      static_cast<vtkRenderWindowInteractor*>(caller);
+
+  programmableFilter->Modified();
+
+  iren->Render();
+
+  if (count > maxCount)
+  {
+    iren->DestroyTimer();
+  }
+
+  count++;
+}
+} // namespace
 
 // function to create a tracker image
 int CreateTrackerImage(BaseImageType::Pointer tracker, ImageType::Pointer img, ImageType::RegionType region){
@@ -344,14 +370,20 @@ int main ( int argc, char * argv[] )
   // programmableFilter->SetInputConnetion(polypointSource->GetOutputPort());
   // programmableFilter->SetExecuteMethod(AdjustPoints, programmableFilter);
 
+  vtkNew<vtkProgrammableFilter> timerprogrammableFilter;
+  timerprogrammableFilter->SetInputData(polyPoints);
+  timerprogrammableFilter->SetExecuteMethod(AdjustPoints, timerprogrammableFilter);
+
   vtkSmartPointer < vtkPolyDataMapper > polyMapper = vtkSmartPointer < vtkPolyDataMapper > ::New() ;
-  polyMapper->SetInputData(polyPoints) ;
+  polyMapper->SetInputData (timerprogrammableFilter->GetPolyDataOutput()) ;
+
   vtkSmartPointer < vtkActor > actor = vtkSmartPointer < vtkActor >::New() ;
   actor->SetMapper(polyMapper);
 
   // create a scene that keeps track of all the actors in the workspace
   vtkSmartPointer < vtkRenderer > renderer = vtkSmartPointer < vtkRenderer >::New() ;
   renderer->AddActor ( actor ) ;
+  renderer -> SetViewport(0.5, 0,1,1);
 
   BaseImageToVTKFilterType::Pointer faitkToVTKfilter = BaseImageToVTKFilterType::New() ;
   faitkToVTKfilter->SetInput ( faImageFilter -> GetOutput() ) ;
@@ -431,15 +463,29 @@ int main ( int argc, char * argv[] )
   //---WINDOW---//
   vtkSmartPointer < vtkRenderWindow > window = vtkSmartPointer < vtkRenderWindow >::New() ;
   window->AddRenderer ( farenderer ) ;
-  // window->AddRenderer ( renderer );
+  window->AddRenderer ( renderer );
   window->SetSize ( 1000, 500 ) ;
   window->Render();
 
   vtkSmartPointer < vtkRenderWindowInteractor > interactor = vtkSmartPointer < vtkRenderWindowInteractor >::New() ;
   interactor->SetRenderWindow ( window ) ;
 
+  vtkSmartPointer < vtkInteractorStyleImage > style = vtkSmartPointer < vtkInteractorStyleImage >::New() ;
+  style->SetInteractionModeToImageSlicing() ;
+
   interactor->Initialize() ;
+  interactor->CreateRepeatingTimer ( 0.5 ) ;
+
+  vtkNew<vtkCallbackCommand> timerCallback;
+  timerCallback->SetCallback(MyTimerCallBack);
+  timerCallback->SetClientData(timerprogrammableFilter);
+
+  interactor->AddObserver(vtkCommand::TimerEvent, timerCallback);
+
+  // Run
   interactor->Start() ;
+  interactor->ReInitialize();
+
 
   // Done.
   return 0 ;
