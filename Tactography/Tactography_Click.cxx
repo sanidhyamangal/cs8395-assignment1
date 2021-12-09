@@ -1,13 +1,12 @@
 #include "itkImage.h"
 #include "itkImageFileReader.h"
-#include "itkImageToVTKImageFilter.h"
-#include "itkFlipImageFilter.h"
 #include "itkImageFileWriter.h"
 #include "itkDiffusionTensor3D.h"
 #include "itkSymmetricEigenAnalysisImageFilter.h"
 #include "itkTensorFractionalAnisotropyImageFilter.h"
 #include "itkVector.h"
 #include "itkImageIterator.h"
+#include "itkImageToVTKImageFilter.h"
 
 #include "vtkSmartPointer.h"
 #include "vtkImageSliceMapper.h"
@@ -16,192 +15,113 @@
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
 #include "vtkCamera.h"
+#include "vtkPolyData.h"
+#include "vtkPoints.h"
+#include "vtkCellArray.h"
+#include <vtkImageProperty.h>
 #include "vtkInteractorStyleImage.h"
 #include "vtkCommand.h"
-#include "vtkImageSlice.h"
-#include "vtkImageProperty.h"
-#include "vtkDiscreteMarchingCubes.h"
+#include "vtkCellData.h"
 #include "vtkPolyDataMapper.h"
-#include "vtkPoints.h"
+#include "vtkUnsignedCharArray.h"
+#include "vtkRendererCollection.h"
+#include "vtkImageSlice.h"
 #include "vtkNew.h"
+#include "vtkInteractorStyleImage.h"
 #include "vtkProgrammableFilter.h"
 #include "vtkCallbackCommand.h"
-#include "vtkProperty.h"
-#include "vtkSphereSource.h"
-// #include "vtkPolyPointSource.h"
-#include "vtkTextActor.h"
-#include "vtkTextProperty.h"
-#include "vtkPointPicker.h"
 #include "vtkVolumePicker.h"
-#include "vtkRendererCollection.h"
-#include "vtkImageData.h"
-#include "vtkNamedColors.h"
+#include "vtkSphereSource.h"
 
-
-
-//Global Types
+//---Image Typedefs--//
 const unsigned int nDims = 3 ;   // Setup types
-typedef itk::DiffusionTensor3D < double > DiffTensorType ;
-typedef itk::Image < DiffTensorType , nDims > ImageType ;
+typedef itk::DiffusionTensor3D < double > TensorType ;
+typedef itk::Image < TensorType , nDims > ImageType ;
 typedef itk::Vector <double, nDims> VectorType;
 typedef itk::Image <VectorType, nDims> PAImageType ;
-typedef itk::Image < double, nDims> FAImageType ;
-typedef itk::Image < int, nDims> TrackImageType ;
-typedef itk::Image < int, nDims> SegmentedImageType ;
+typedef itk::Image < double, nDims> BaseImageType ;
+typedef itk::ImageFileReader < ImageType > TensorImageFileReaderType ;
+typedef itk::ImageFileReader < BaseImageType > BaseImageReaderType;
+typedef itk::ImageRegionIterator < ImageType > InputImageIterator ;
+typedef itk::ImageRegionIterator < PAImageType > PAImageIterator ;
+typedef itk::ImageRegionIterator <BaseImageType> BaseImageIteratorType ;
+typedef itk::TensorFractionalAnisotropyImageFilter <ImageType, BaseImageType> FAImageFilterType;
+typedef itk::ImageToVTKImageFilter <BaseImageType> BaseImageToVTKFilterType;
+typedef itk::ImageToVTKImageFilter <PAImageType> PAImageToVTKFilterType;
+typedef itk::ImageToVTKImageFilter <ImageType> ImageToVTKFilterType;
 
-//Global Variables
+// --- Global Variables -- //
 vtkNew<vtkPoints> points;
-FAImageType::Pointer myGlobalITKImage;
-PAImageType::Pointer myGlobalPAITKImage;
-std::vector<std::list<ImageType::IndexType> > allClickLists;
-int globalNumClicks = 0;
-vtkNew<vtkNamedColors> colors;
+std::list<ImageType::IndexType> globalList;
+std::vector<std::list<ImageType::IndexType>>clickLists;
 
 namespace {
-void TimerCallbackFunction(vtkObject* caller, long unsigned int eventId,
+void MyTimerCallBack(vtkObject* caller, long unsigned int eventId,
                            void* clientData, void* callData);
 
-unsigned int counter = 0;
+unsigned int count = 0;
 unsigned int maxCount = 1000000;
 
 void AdjustPoints(void* arguments)
 {
-   vtkProgrammableFilter* programmableFilter = static_cast<vtkProgrammableFilter*>(arguments);
+   vtkProgrammableFilter* myFilter = static_cast<vtkProgrammableFilter*>(arguments);
   
-   vtkPoints* inPts = programmableFilter->GetPolyDataInput()->GetPoints();
+   vtkPoints* inPts = myFilter->GetPolyDataInput()->GetPoints();
    vtkIdType numPts = inPts->GetNumberOfPoints();
-   vtkNew<vtkPoints> newPts;
-   newPts->SetNumberOfPoints(numPts);
+   vtkNew<vtkPoints> nPts;
+   nPts->SetNumberOfPoints(numPts);
 
-   double p[3];
+   double pt[3];
    for (int i=0; i<numPts; i++){
-     if (i < counter+1){
-     points->GetPoint(i, p);
-     newPts->SetPoint(i, p);
+     if (i < count+1){
+     points->GetPoint(i, pt);
+     nPts->SetPoint(i, pt);
      }
      else {
-      inPts->GetPoint(i,p);
-      newPts->SetPoint(i,p);
+      inPts->GetPoint(i,pt);
+      nPts->SetPoint(i,pt);
      }
    }
 
-    programmableFilter->GetPolyDataOutput()->CopyStructure(programmableFilter->GetPolyDataInput());
-    programmableFilter->GetPolyDataOutput()->SetPoints(newPts);
-    std::cout<<"Iteration: " << counter << ", Number of Points: "<< numPts << std::endl;
+    myFilter->GetPolyDataOutput()->CopyStructure(myFilter->GetPolyDataInput());
+    myFilter->GetPolyDataOutput()->SetPoints(nPts);
 }
 
 } // namespace
 
 namespace {
-void TimerCallbackFunction(vtkObject* caller,
+void MyTimerCallBack(vtkObject* caller,
                            long unsigned int vtkNotUsed(eventId),
                            void* clientData, void* vtkNotUsed(callData))
 {
 
-  auto programmableFilter = static_cast<vtkProgrammableFilter*>(clientData);
+  vtkRenderWindowInteractor* interactor =
+      dynamic_cast<vtkRenderWindowInteractor*>(caller);
 
-  vtkRenderWindowInteractor* iren =
-      static_cast<vtkRenderWindowInteractor*>(caller);
+  auto myFilter = static_cast<vtkProgrammableFilter*>(clientData);
 
-  programmableFilter->Modified();
 
-  iren->Render();
+  myFilter->Modified();
 
-  if (counter > maxCount)
+  interactor->Render();
+
+  if (count > maxCount)
   {
-    iren->DestroyTimer();
+    interactor->DestroyTimer();
   }
 
-  counter++;
+  count++;
 }
-
 } // namespace
 
-namespace {
-
-// Define interaction style
-class MouseInteractorStylePP : public vtkInteractorStyleTrackballCamera
+class myMouseInteractor : public vtkInteractorStyleTrackballCamera
 {
 public:
-  static MouseInteractorStylePP* New();
-  vtkTypeMacro(MouseInteractorStylePP, vtkInteractorStyleTrackballCamera);
-
-  void makeTracks(FAImageType::Pointer myFAImage, PAImageType::Pointer myPAImage,ImageType::IndexType seed)
-  {
-    
-    ImageType::RegionType myCustomRegion;
-    ImageType::SizeType size = myPAImage->GetLargestPossibleRegion().GetSize() ;
-    ImageType::IndexType corner ;
-    corner[0] = 0; corner[1] = 0; corner[2] = 0;
-    //std::cout << "Size: "<< size << std::endl;
-    myCustomRegion.SetSize( size ) ;
-    myCustomRegion.SetIndex( corner ) ;
-
-    //---(4) Seed Voxel Track---//
-    TrackImageType::Pointer myTrackImage = TrackImageType::New() ;
-    myTrackImage->SetOrigin(myPAImage->GetOrigin() ) ;
-    myTrackImage->SetDirection(myPAImage->GetDirection() );
-    myTrackImage->SetSpacing(myPAImage->GetSpacing() );
-    myTrackImage->SetRegions(myCustomRegion);
-    myTrackImage->Allocate() ;
-
-    int iter = 0;
-    double delta = 0.85;
-    ImageType::IndexType thisloc = seed;
-    ImageType::IndexType newloc = seed;
-    
-    std::list<ImageType::IndexType> seedtrackPixelList = {};
-    RecursiveTrack(myPAImage, myFAImage, myTrackImage, thisloc, delta, iter, seedtrackPixelList);
-    
-    allClickLists.push_back(seedtrackPixelList);
-  }
-
-  int RecursiveTrack(PAImageType::Pointer myPAImage, FAImageType::Pointer myFAImage, TrackImageType::Pointer myTrackImage, ImageType::IndexType thisloc, double delta, int iter, std::list<ImageType::IndexType> & trackPixelList)
-  {
-    // Check Stopping Conditions
-    if (!myTrackImage->GetLargestPossibleRegion().IsInside(thisloc)) { //Voxel outside of image
-      return 0;
-    }
-    if (myTrackImage->GetPixel(thisloc) == 1.0) { //Voxel already visited
-      return 0 ;
-    }
-    if (myFAImage->GetPixel(thisloc) < 0.25) { //Voxel below minFA
-      return 0;
-    }
-    if (iter > 1000) { //Surpassed maximum iterations
-      return 0;
-    }
-
-    // If Stopping conditions pass, set voxel intensity
-    myTrackImage->SetPixel(thisloc , 1.0) ;
-    //std::cout << thisloc << std::endl;
-    trackPixelList.push_back(thisloc);
-    iter++;
-
-    // Get next forward and back pixel
-    ImageType::IndexType newlocplus = thisloc ;
-    ImageType::IndexType newlocneg = thisloc ;
-    
-    VectorType thisVector ;
-    thisVector = myPAImage->GetPixel(thisloc);
-    newlocplus [0] = round(thisVector[0]*delta + thisloc[0]);
-    newlocplus [1] = round(thisVector[1]*delta + thisloc[1]);
-    newlocplus [2] = round(thisVector[2]*delta + thisloc[2]);
-    RecursiveTrack(myPAImage, myFAImage, myTrackImage, newlocplus, delta, iter, trackPixelList);
-    
-    newlocneg [0] = round(-thisVector[0]*delta + thisloc[0]);
-    newlocneg [1] = round(-thisVector[1]*delta + thisloc[1]);
-    newlocneg [2] = round(-thisVector[2]*delta + thisloc[2]);
-    RecursiveTrack(myPAImage, myFAImage, myTrackImage, newlocneg , delta, iter, trackPixelList);
-
-    return 0;
-  }
+  static myMouseInteractor* New();
+  vtkTypeMacro(myMouseInteractor, vtkInteractorStyleTrackballCamera);
 
   virtual void OnLeftButtonDown() 
   {
-   // std::cout << "Picking pixel: " << this->Interactor->GetEventPosition()[0]
-    //           << " " << this->Interactor->GetEventPosition()[1] << std::endl;
-    
     this->Interactor->GetPicker()->Pick(this->Interactor->GetEventPosition()[0],
                                         this->Interactor->GetEventPosition()[1],
                                         0, // always zero.
@@ -212,24 +132,16 @@ public:
     int picked[3];
     vtkVolumePicker* thisPicker = dynamic_cast<vtkVolumePicker*>(this->Interactor->GetPicker());
     thisPicker->GetPointIJK(picked);
-    
-    //Flip coordinates (hard coded for this image)
-    picked[0] = 143 - picked[0];
-    picked[1] = 143 - picked[1];
-    picked[2] = 84 - picked[2];
 
     ImageType::IndexType pickedIndex;
     pickedIndex[0] = picked[0]; pickedIndex[1] = picked[1]; pickedIndex[2] = picked[2];
 
     if ( this->Interactor->GetEventPosition()[0] < 500){
-      std::cout << "Picked value: " << picked[0] << " " << picked[1] << " " << picked[2] << std::endl;
-      std::cout << "Running makeTracks..." << std:: endl;
-      makeTracks(myGlobalITKImage, myGlobalPAITKImage, pickedIndex);
-
+      std::cout << "Points Selected: " << picked[0] << " " << picked[1] << " " << picked[2] << std::endl;
       // Add Sphere Source to First Renderer
       vtkNew<vtkSphereSource> sphereSource;
       sphereSource->SetCenter(thisPicker->GetPickPosition());
-      sphereSource->SetRadius(2.0);
+      sphereSource->SetRadius(3.0);
       sphereSource->Update();
       vtkNew<vtkPolyDataMapper> sphereMapper;
       sphereMapper->SetInputConnection(sphereSource->GetOutputPort());
@@ -237,76 +149,9 @@ public:
       sphereActor->SetMapper(sphereMapper);
       this->Interactor->GetRenderWindow()->GetRenderers()->GetFirstRenderer()->AddActor(sphereActor);
 
-      //---POLYPOINTSOURCE---//
-      vtkSmartPointer <vtkPolyData> polypointSource = vtkSmartPointer <vtkPolyData> :: New();
-      std::list<ImageType::IndexType> globalList =  allClickLists[globalNumClicks];
-
-      ImageType::IndexType thisIndex;
-      for (std::list<ImageType::IndexType>::iterator it = globalList.begin(); it!=globalList.end(); it++){
-        thisIndex = *it;
-        points->InsertNextPoint(thisIndex[0], thisIndex[1], thisIndex[2]);
-      }
-      
-      vtkNew<vtkPoints> initialPoints = {};
-      std::list<ImageType::IndexType>::iterator it = globalList.begin();
-      thisIndex = *it;
-      for (std::list<ImageType::IndexType>::iterator it = globalList.begin(); it!=globalList.end(); it++){
-        initialPoints->InsertNextPoint(thisIndex[0], thisIndex[1], thisIndex[2]);
-      }
-
-      polypointSource->SetPoints(initialPoints);
-      vtkNew<vtkProgrammableFilter> programmableFilter;
-      programmableFilter->SetInputData(polypointSource);
-      programmableFilter->SetExecuteMethod(AdjustPoints, programmableFilter);
-      
-      vtkSmartPointer < vtkPolyDataMapper > polyMapper = vtkSmartPointer < vtkPolyDataMapper > ::New() ;
-      polyMapper->SetInputData (programmableFilter->GetPolyDataOutput()) ;
-      vtkSmartPointer < vtkActor > actor = vtkSmartPointer < vtkActor >::New() ;
-      actor->SetMapper(polyMapper);
-      actor->GetProperty()->SetPointSize(2.0);
-
-      //Set Colors
-      if (globalNumClicks==0){
-       sphereActor->GetProperty()->SetColor(colors->GetColor3d("LightCoral").GetData());
-       actor->GetProperty()->SetColor(colors->GetColor3d("LightCoral").GetData());
-      }
-      else if (globalNumClicks==1){
-       sphereActor->GetProperty()->SetColor(colors->GetColor3d("LightBlue").GetData());
-       actor->GetProperty()->SetColor(colors->GetColor3d("LightBlue").GetData());
-      }
-      else if (globalNumClicks==2){
-       sphereActor->GetProperty()->SetColor(colors->GetColor3d("SeaGreen").GetData());
-       actor->GetProperty()->SetColor(colors->GetColor3d("SeaGreen").GetData());
-      }
-      else {
-       sphereActor->GetProperty()->SetColor(colors->GetColor3d("Silver").GetData());
-       actor->GetProperty()->SetColor(colors->GetColor3d("Silver").GetData());
-      }
-
-      //---Add Actor to 2nd Renderer---//
-      //this->Interactor->GetRenderWindow()->GetRenderers()->GetFirstRenderer()->AddActor(actor);
-      vtkRendererCollection* renderers = this->Interactor->GetRenderWindow()->GetRenderers();
-      std:: cout << renderers->GetNumberOfItems() << std::endl;
-      renderers->InitTraversal();
-      // Top item
-      vtkRenderer* ren0 = renderers->GetNextItem();
-      // Bottom item
-      vtkRenderer* ren1 = renderers->GetNextItem();
-      ren1->AddActor(actor);
-
       //Re-render
       this->Interactor->GetRenderWindow()->Render();
       this->Interactor->Render();
-
-      //Add new timer for new actor
-      vtkNew<vtkCallbackCommand> timerCallback;
-      timerCallback->SetCallback(TimerCallbackFunction);
-      timerCallback->SetClientData(programmableFilter);
-      this->Interactor->AddObserver(vtkCommand::TimerEvent, timerCallback);
-      this->Interactor->ReInitialize();
-
-      globalNumClicks++;
-
     }
 
     // Forward events
@@ -314,316 +159,364 @@ public:
   }
 };
 
-vtkStandardNewMacro(MouseInteractorStylePP);
+vtkStandardNewMacro(myMouseInteractor);
 
-} // namespace
+// } // namespace
 
-
-
-int RecursiveTrack(PAImageType::Pointer myPAImage, FAImageType::Pointer myFAImage, TrackImageType::Pointer myTrackImage, ImageType::IndexType thisloc, double delta, int iter, std::list<ImageType::IndexType> & trackPixelList)
-{
-  // Check Stopping Conditions
-  if (!myTrackImage->GetLargestPossibleRegion().IsInside(thisloc)) { //Voxel outside of image
-    return 0;
-  }
-  if (myTrackImage->GetPixel(thisloc) == 1.0) { //Voxel already visited
-    return 0 ;
-  }
-  if (myFAImage->GetPixel(thisloc) < 0.25) { //Voxel below minFA
-    return 0;
-  }
-  if (iter > 1000) { //Surpassed maximum iterations
-    return 0;
-  }
-
-  // If Stopping conditions pass, set voxel intensity
-  myTrackImage->SetPixel(thisloc , 1.0) ;
-  //std::cout << thisloc << std::endl;
-  trackPixelList.push_back(thisloc);
-  iter++;
-
-  // Get next forward and back pixel
-  ImageType::IndexType newlocplus = thisloc ;
-  ImageType::IndexType newlocneg = thisloc ;
-  
-  VectorType thisVector ;
-  thisVector = myPAImage->GetPixel(thisloc);
-  newlocplus [0] = round(thisVector[0]*delta + thisloc[0]);
-  newlocplus [1] = round(thisVector[1]*delta + thisloc[1]);
-  newlocplus [2] = round(thisVector[2]*delta + thisloc[2]);
-  RecursiveTrack(myPAImage, myFAImage, myTrackImage, newlocplus, delta, iter, trackPixelList);
-  
-  newlocneg [0] = round(-thisVector[0]*delta + thisloc[0]);
-  newlocneg [1] = round(-thisVector[1]*delta + thisloc[1]);
-  newlocneg [2] = round(-thisVector[2]*delta + thisloc[2]);
-  RecursiveTrack(myPAImage, myFAImage, myTrackImage, newlocneg , delta, iter, trackPixelList);
+// function to create a tracker image
+int CreateTrackerImage(BaseImageType::Pointer tracker, ImageType::Pointer img, ImageType::RegionType region){
+  tracker->SetOrigin(img->GetOrigin() ) ;
+  tracker->SetDirection(img->GetDirection() );
+  tracker->SetSpacing(img->GetSpacing() );
+  tracker->SetRegions(region);
+  tracker->Allocate() ;
 
   return 0;
 }
 
-FAImageType::Pointer makeFAImage(char * DTIFileName) 
-{
-  typedef itk::ImageFileReader < ImageType > ImageReaderType1 ;
-  ImageReaderType1 ::Pointer myReader1 = ImageReaderType1 ::New() ;  
-  myReader1->SetFileName (DTIFileName) ;
-  myReader1->Update();   // go read
-  ImageType::Pointer myImage = myReader1->GetOutput();
-  
-  //---(3) Compute FA---//
-  typedef itk::TensorFractionalAnisotropyImageFilter <ImageType, FAImageType> FAFilterType ;
-  FAFilterType::Pointer myFAImageFilter = FAFilterType::New() ;
-  myFAImageFilter ->SetInput(myImage) ;
-  myFAImageFilter ->Update() ;
+// Function to return the new index for the tracker
+ImageType::IndexType computeNewIdx(VectorType thisVector, double delta, ImageType::IndexType currLoc, bool sign){
+  ImageType::IndexType newLoc = currLoc;
 
-  return myFAImageFilter->GetOutput();
-}
+  // check if forward side of index required or something different
+  if (sign){
+    newLoc[0] = round(thisVector[0]*delta + currLoc[0]);
+    newLoc[1] = round(thisVector[1]*delta + currLoc[1]);
+    newLoc[2] = round(thisVector[2]*delta + currLoc[2]);
 
-PAImageType::Pointer makePAImage(char * DTIFileName)
-{
-  typedef itk::ImageFileReader < ImageType > ImageReaderType1 ;
-  ImageReaderType1 ::Pointer myReader1 = ImageReaderType1 ::New() ;  
-  myReader1->SetFileName (DTIFileName) ;
-  myReader1->Update();   // go read
-  ImageType::Pointer myImage = myReader1->GetOutput();
-   
-  //---(2) Compute principal eigenvector---//
-  ImageType::RegionType myCustomRegion;
-  ImageType::SizeType size = myImage->GetLargestPossibleRegion().GetSize() ;
-  ImageType::IndexType corner ;
-  corner[0] = 0; corner[1] = 0; corner[2] = 0;
-  //std::cout << "Size: "<< size << std::endl;
-  myCustomRegion.SetSize( size ) ;
-  myCustomRegion.SetIndex( corner ) ;
-  typedef itk::ImageRegionIterator < ImageType > InputIteratorType ;
-  typedef itk::ImageRegionIterator < PAImageType > OutputIteratorType ;
-
-  PAImageType::Pointer myPAImage = PAImageType::New() ;
-  myPAImage->SetOrigin(myImage->GetOrigin() ) ;
-  myPAImage->SetDirection(myImage->GetDirection() );
-  myPAImage->SetSpacing(myImage->GetSpacing() );
-  myPAImage->SetRegions(myCustomRegion);
-  myPAImage->Allocate() ;
-
-  OutputIteratorType outputIterator (myPAImage, myCustomRegion);
-  InputIteratorType inputIterator (myImage, myCustomRegion);
-  outputIterator.GoToBegin ();
-  inputIterator.GoToBegin () ;
-  DiffTensorType thisTensor ;
-  DiffTensorType::EigenValuesArrayType myEVAT;
-  DiffTensorType::EigenVectorsMatrixType myEVMT ;
-  VectorType thisVector ;
-
-  while (!outputIterator.IsAtEnd() )
-  {
-   thisTensor =  inputIterator.Value() ;
-   thisTensor.ComputeEigenAnalysis(myEVAT, myEVMT) ;
-   thisVector[0] = myEVMT[2][0]*1 ; thisVector[1] = myEVMT[2][1]*1 ; thisVector[2] = myEVMT[2][2]*1 ; // Principal axis vector
-
-   if (myEVMT[2][2] == 1) { 
-     thisVector[0] = 0; thisVector[1] = 0; thisVector[2] = 0; //Change zero tensor to 0 Principal Vector Direction
-   }
-   outputIterator.Set(thisVector) ;
-   ++outputIterator ;
-   ++inputIterator ;
+    return newLoc;
   }
 
-  return myPAImage;
+  // return for negative
+  newLoc[0] = round(-thisVector[0]*delta + currLoc[0]);
+  newLoc[1] = round(-thisVector[1]*delta + currLoc[1]);
+  newLoc[2] = round(-thisVector[2]*delta + currLoc[2]);
+  
+  return newLoc;
 }
 
-void makeTracks(FAImageType::Pointer myFAImage, PAImageType::Pointer myPAImage,ImageType::IndexType seed)
-{
+int traverseImage(BaseImageType::Pointer faImage, PAImageType::Pointer paImage, BaseImageType::Pointer trackerImage, ImageType::IndexType curLoc ,double delta, int iter, std::list<ImageType::IndexType> & trackerList){
+  // stopping conditions
+  // if location is outside of the image
   
-  ImageType::RegionType myCustomRegion;
-  ImageType::SizeType size = myPAImage->GetLargestPossibleRegion().GetSize() ;
-  ImageType::IndexType corner ;
-  corner[0] = 0; corner[1] = 0; corner[2] = 0;
-  //std::cout << "Size: "<< size << std::endl;
-  myCustomRegion.SetSize( size ) ;
-  myCustomRegion.SetIndex( corner ) ;
+  if (!trackerImage -> GetLargestPossibleRegion().IsInside(curLoc)){
+    return 0;
+  }
 
-  //---(4) Seed Voxel Track---//
-  TrackImageType::Pointer myTrackImage = TrackImageType::New() ;
-  myTrackImage->SetOrigin(myPAImage->GetOrigin() ) ;
-  myTrackImage->SetDirection(myPAImage->GetDirection() );
-  myTrackImage->SetSpacing(myPAImage->GetSpacing() );
-  myTrackImage->SetRegions(myCustomRegion);
-  myTrackImage->Allocate() ;
+  // if iter is greater than 1000
+  if (iter > 1000){
+    return 0;
+  }
 
-  int iter = 0;
-  double delta = 0.85;
-  ImageType::IndexType thisloc = seed;
-  ImageType::IndexType newloc = seed;
-  
-  std::list<ImageType::IndexType> seedtrackPixelList;
-  RecursiveTrack(myPAImage, myFAImage, myTrackImage, thisloc, delta, iter, seedtrackPixelList);
-  
-  allClickLists.push_back(seedtrackPixelList);
+  // if location is already visited
+  if (trackerImage -> GetPixel(curLoc) == 1.0){
+    return 0;
+  }
+
+  // if the eigen value is less then FA val
+  if (faImage -> GetPixel(curLoc) < 0.2) {
+    return 0;
+  }
+
+  // mark the pixel in tracker image as visited
+  trackerImage -> SetPixel(curLoc, 1.0);
+  trackerList.push_back(curLoc);
+  iter++;
+
+  VectorType thisVector ;
+  thisVector = paImage->GetPixel(curLoc);
+
+  // find the new set of forward and backward indexes to call the function
+  ImageType::IndexType forward = computeNewIdx(thisVector, delta, curLoc, true);
+  ImageType::IndexType backward = computeNewIdx(thisVector, delta, curLoc, false);
+
+  // make recursive calls to track image
+  traverseImage(faImage, paImage, trackerImage, forward, delta, iter,trackerList);
+  traverseImage(faImage, paImage, trackerImage, backward, delta, iter,trackerList);
+
 }
 
+// a generic file writer class which takes image pointer and filename as input
+// and writes the file to it.
+template <class ImageType>
+int imageWriter(typename ImageType::Pointer image, char* filename) {
+
+  // create an ITK file writer
+  typedef itk::ImageFileWriter <ImageType> ImageFileWriterType;
+  typename ImageFileWriterType::Pointer myFileWriter = ImageFileWriterType::New();
+
+  // perform ops for writing the image
+  myFileWriter -> SetFileName(filename);
+  myFileWriter -> SetInput(image);
+  myFileWriter -> Update();
+
+  return 0;
+
+}
 
 int main ( int argc, char * argv[] )
 {
-  // Verify command line arguments
-  if( argc < 2 )
+  // --- Verify command line arguments----//
+  if( argc < 3 )
     {
       std::cerr << "Usage: " << std::endl ;
-      std::cerr << argv[0] << " inputDTIImageFile" << std::endl ; 
+      std::cerr << argv[0] << " inputFileImage inputSegmentedFile" << std::endl ; 
       return -1 ;
     }
 
-  //---PART1---//
-  myGlobalITKImage = makeFAImage(argv[1]);
-  myGlobalPAITKImage = makePAImage(argv[1]);
-  //ImageType::IndexType seed ;
-  //seed[0] = 73; seed[1] = 89; seed[2] = 38;
-  //makeTracks(myGlobalITKImage, myGlobalPAITKImage, seed);
-  //std::list<ImageType::IndexType> globalList =  allClickLists[0];
-
-  ImageType::RegionType myCustomRegion;
-  ImageType::SizeType size = myGlobalITKImage->GetLargestPossibleRegion().GetSize() ;
-  ImageType::IndexType corner ;
-  corner[0] = 0; corner[1] = 0; corner[2] = 0;
-  myCustomRegion.SetSize( size ) ;
-  myCustomRegion.SetIndex( corner ) ;
   
-  //---PART2---//
-  //---ITK---// 
-  TrackImageType::Pointer myTrackImage = TrackImageType::New() ;
-  myTrackImage->SetOrigin(myGlobalITKImage->GetOrigin() ) ;
-  myTrackImage->SetDirection(myGlobalITKImage->GetDirection() );
-  myTrackImage->SetSpacing(myGlobalITKImage->GetSpacing() );
-  myTrackImage->SetRegions(myCustomRegion);
-  myTrackImage->Allocate() ;
-  //myTrackImage->SetPixel(seed , 1.0) ;
-  // Flip Image
-  typedef itk::FlipImageFilter < FAImageType > FIFType ;
-  FIFType::Pointer myFlip = FIFType::New();
-  myFlip->SetInput(myGlobalITKImage);
-  FIFType::FlipAxesArrayType flipAxes;
-  flipAxes[0] = true; flipAxes[1] = true; flipAxes[2] = true;
-  myFlip->SetFlipAxes(flipAxes);
+  // read input image file
+  std::cout << "Loading Input TensorImage" <<std::endl;
+  TensorImageFileReaderType ::Pointer inputFileReader = TensorImageFileReaderType ::New() ;  
+  inputFileReader->SetFileName ( argv[1] ) ;
+  inputFileReader->Update();
 
-  // Connect ITK portion to the VTK portion
-  typedef itk::ImageToVTKImageFilter < FAImageType > ITKToVTKFilterType ;
-  ITKToVTKFilterType::Pointer itkToVTKfilter = ITKToVTKFilterType::New() ;
-  itkToVTKfilter->SetInput ( myFlip->GetOutput() ) ;
-  itkToVTKfilter->Update() ;
-  
-  typedef itk::ImageToVTKImageFilter < SegmentedImageType > ITKMaskToVTKFilterType ;
-  ITKMaskToVTKFilterType::Pointer itkMaskToVTKfilter = ITKMaskToVTKFilterType::New() ;
-  itkMaskToVTKfilter->SetInput ( myTrackImage) ;
-  itkMaskToVTKfilter->Update() ;
+  // define the pointer for image reader
+  ImageType::Pointer img = inputFileReader->GetOutput();
+
+  // compute new region which would help in computation of the eigen values and vector
+  ImageType::RegionType newRegion ; // define new region for iterator
+
+  ImageType::SizeType size = img->GetLargestPossibleRegion().GetSize() ;
+  ImageType::IndexType origin ; // create a new index pointing to origin
+  origin[0] = 0; origin[1] = 0; origin[2] = 0;
+
+  newRegion.SetSize( size ) ;
+  newRegion.SetIndex( origin ) ;
   
 
-  //---VTK---//
-  
-  //---IMAGESLICE---//
-  vtkSmartPointer < vtkImageSliceMapper > imageMapper = vtkSmartPointer < vtkImageSliceMapper > ::New() ;
-  imageMapper->SetInputData ( itkToVTKfilter->GetOutput() ) ;
-  imageMapper->SetOrientationToY () ;
-  imageMapper->SetSliceNumber ( 72 ) ;
-  imageMapper->SliceAtFocalPointOn () ;
-  imageMapper->SliceFacesCameraOn () ;  
-  vtkSmartPointer <vtkImageSlice> slice = vtkSmartPointer <vtkImageSlice> ::New();
-  slice->SetMapper(imageMapper);
-  slice->GetProperty()->SetColorWindow(0.8879);
-  slice->GetProperty()->SetColorLevel(0.4440);
+  // create a tracker image for the segmentation of the index it would be used later
+  BaseImageType::Pointer trackerImage = BaseImageType::New() ;
 
-  //---TEXT---//
-  vtkSmartPointer < vtkTextActor > text1 = vtkSmartPointer < vtkTextActor >::New() ;
-  text1->SetInput ( "FA Image (click to place seed)" ) ;
-  text1->SetDisplayPosition ( 50, 450 ) ;
-  text1->GetTextProperty()->SetColor ( 1, 1, 1 ) ;
-  text1->GetTextProperty()->SetFontSize ( 20 ) ;
+  std::cout << "Creating a Tracker Image for the Input Image" <<std::endl;
+  CreateTrackerImage(trackerImage, img, newRegion);
 
-  vtkSmartPointer < vtkTextActor > text2 = vtkSmartPointer < vtkTextActor >::New() ;
-  text2->SetInput ( "Seed Tracks (click to view)" ) ;
-  text2->SetDisplayPosition ( 550, 450 ) ;
-  text2->GetTextProperty()->SetColor ( 1, 1, 1 ) ;
-  text2->GetTextProperty()->SetFontSize ( 20 ) ;
+  // ---- EigenValue and FA computation ------//
 
-    //---RENDER1---//
-  vtkSmartPointer < vtkRenderer > renderer1 = vtkSmartPointer < vtkRenderer >::New() ;
-  renderer1->AddViewProp ( slice ) ;
-  renderer1->SetViewport(0,0,0.5,1);
-  renderer1->AddActor(text1);
-    
-    //---RENDER1CAMERA---//
-    vtkSmartPointer < vtkCamera > camera = renderer1->GetActiveCamera() ;
+  // define PA image for other ops such as eigen value computation
+  std::cout << "Allocating Principal Axis Eigen Value Image" <<std::endl;
+  PAImageType::Pointer paImage = PAImageType::New() ;
+  paImage->SetOrigin(img->GetOrigin() ) ;
+  paImage->SetDirection(img->GetDirection() );
+  paImage->SetSpacing(img->GetSpacing() );
+  paImage->SetRegions(newRegion);
+  paImage->Allocate() ;
 
-    double position[3],  imageCenter[3] ;
-    itkToVTKfilter->GetOutput()->GetCenter ( imageCenter ) ;
-    position[0] = imageCenter[0] ;
-    position[1] = -160 ;
-    position[2] = imageCenter[1] ;
-    double spacing[3] ;
-    int imageDims[3] ;
-    itkToVTKfilter->GetOutput()->GetSpacing ( spacing ) ;
-    itkToVTKfilter->GetOutput()->GetDimensions ( imageDims ) ;
-    double imagePhysicalSize[3] ;
-    for ( unsigned int d = 0 ; d < 3 ; d++ )
-      {
-        imagePhysicalSize[d] = spacing[d] * imageDims[d] ;
-      }
-    camera->ParallelProjectionOn () ; 
-    camera->SetFocalPoint ( imageCenter ) ;
-    camera->SetPosition ( position ) ;
-    camera->SetParallelScale ( imageDims[2] / 0.8 ) ;
 
-  
-  //---POLYPOINTSOURCE---//
-  /*vtkNew<vtkPolyPointSource> polypointSource;
+  // define tensors and vectors to store eigen val and vector
+  TensorType thisTensor ;
+  TensorType::EigenValuesArrayType eigenValArrayType;
+  TensorType::EigenVectorsMatrixType eigenValMatrixType ;
+  VectorType thisVector ;
 
-  ImageType::IndexType thisIndex;
-  for (std::list<ImageType::IndexType>::iterator it = globalList.begin(); it!=globalList.end(); it++){
-    thisIndex = *it;
-    points->InsertNextPoint(thisIndex[0], thisIndex[1], thisIndex[2]);
+  PAImageIterator paIterator (paImage, newRegion);
+  InputImageIterator inputImageIterator (img, newRegion);
+  paIterator.GoToBegin ();
+  inputImageIterator.GoToBegin () ;
+
+  while (!paIterator.IsAtEnd() )
+  {
+   thisTensor =  inputImageIterator.Value() ;
+   thisTensor.ComputeEigenAnalysis(eigenValArrayType, eigenValMatrixType) ;
+
+   // compute and store eigenValue in this tensor to update it to next iterator
+   thisVector[0] = eigenValMatrixType[2][0]*1 ; 
+   thisVector[1] = eigenValMatrixType[2][1]*1 ; 
+   thisVector[2] = eigenValMatrixType[2][2]*1 ;
+
+
+  // change the vector to zero for making it to zero for the out of bound eigen values
+   if (eigenValMatrixType[2][2] == 1) { 
+     thisVector[0] = 0; 
+     thisVector[1] = 0; 
+     thisVector[2] = 0;
+   }
+
+   // update the iterators for making it better 
+   paIterator.Set(thisVector) ;
+   ++paIterator ;
+   ++inputImageIterator ;
   }
+
+  std::cout << "Computing FA for the Input Image" <<std::endl;
+
+  // compute FA for the image
+  FAImageFilterType::Pointer faImageFilter = FAImageFilterType::New();
+  // pass input image as input
+  faImageFilter -> SetInput(img);
+  faImageFilter -> Update();  
   
+
+  //------Voxel Tracking ------//
+  std::cout << "Performing Voxel tracking for the Input Image" <<std::endl;
+  // define random seed
+  ImageType::IndexType seed;
+
+  seed[0] = 73;
+  seed[1] = 83;
+  seed[2] = 34;
+
+  // define hyperparms for tracking the inputs
+  unsigned int iter=0;
+  double delta = 0.9;
+
+
+  // define location of the seed
+  ImageType::IndexType currLoc = seed;
+  ImageType::IndexType newLoc = seed;
+
+  std::list<ImageType::IndexType> seedTrackerList;
+  // start image traversal for the images
+  traverseImage(faImageFilter -> GetOutput(), paImage, trackerImage, currLoc, delta, iter, seedTrackerList);
+  
+  // ---- Perform Segmentation Task ---- //
+  std::cout << "Loading Segmentation Image" <<std::endl;
+  // load segmented image file
+  BaseImageReaderType::Pointer segmentedFileReader = BaseImageReaderType::New();
+  segmentedFileReader -> SetFileName(argv[2]);
+  segmentedFileReader -> Update(); // read the file
+  BaseImageType::Pointer segmentedImage = segmentedFileReader -> GetOutput();
+
+  // create a tracker image for the segmented file
+  std::cout << "Allocating Tracker image for Segmentation Image" <<std::endl;
+  BaseImageType::Pointer segmentedTrackerImage = BaseImageType::New();
+  CreateTrackerImage(segmentedTrackerImage, img, newRegion);
+
+  // create segmentation iterator
+  std::cout << "Computing Tracker Image for the Segmented Image" <<std::endl;
+  BaseImageIteratorType segmentationIter (segmentedImage, newRegion);
+  segmentationIter.GoToBegin();
+
+  std::list<ImageType::IndexType> segmentedTrackerList;
+
+  while (!segmentationIter.IsAtEnd())
+  {
+    if (segmentationIter.Value() == 1.0){
+      int iter = 0;
+      traverseImage(faImageFilter -> GetOutput(), paImage, segmentedTrackerImage, segmentationIter.GetIndex(), delta, iter, segmentedTrackerList);
+    }
+    ++segmentationIter;
+  }
+
+
+  // reterive all the points and set it into a global list
+  ImageType::IndexType thisIndex;
+  for (std::list<ImageType::IndexType>::iterator it = segmentedTrackerList.begin(); it != segmentedTrackerList.end(); it++){
+    thisIndex = *it;
+    points -> InsertNextPoint(thisIndex[0], thisIndex[1], thisIndex[2]);
+  }
+
+  // create a current initializer
   vtkNew<vtkPoints> initialPoints;
-  std::list<ImageType::IndexType>::iterator it = globalList.begin();
+  std::list<ImageType::IndexType>::iterator it = segmentedTrackerList.begin();
   thisIndex = *it;
   for (std::list<ImageType::IndexType>::iterator it = globalList.begin(); it!=globalList.end(); it++){
     initialPoints->InsertNextPoint(thisIndex[0], thisIndex[1], thisIndex[2]);
   }
 
-
-  polypointSource->SetPoints(initialPoints);
-  polypointSource->Update();
-  vtkNew<vtkProgrammableFilter> programmableFilter;
-  programmableFilter->SetInputConnection(polypointSource->GetOutputPort());
-  programmableFilter->SetExecuteMethod(AdjustPoints, programmableFilter);
+  // create a poly data type for creation of mesh
+  vtkNew<vtkPolyData> polyPoints;
+  polyPoints -> SetPoints(initialPoints);
+  // polyPoints -> Update();
   
+  // vtkNew<vtkProgrammableFilter> programmableFilter;
+  // programmableFilter->SetInputConnetion(polypointSource->GetOutputPort());
+  // programmableFilter->SetExecuteMethod(AdjustPoints, programmableFilter);
+
+  vtkNew<vtkProgrammableFilter> timerprogrammableFilter;
+  timerprogrammableFilter->SetInputData(polyPoints);
+  timerprogrammableFilter->SetExecuteMethod(AdjustPoints, timerprogrammableFilter);
+
   vtkSmartPointer < vtkPolyDataMapper > polyMapper = vtkSmartPointer < vtkPolyDataMapper > ::New() ;
-  polyMapper->SetInputConnection (programmableFilter->GetOutputPort()) ;
+  polyMapper->SetInputData (timerprogrammableFilter->GetPolyDataOutput()) ;
+
   vtkSmartPointer < vtkActor > actor = vtkSmartPointer < vtkActor >::New() ;
-  actor->SetMapper(polyMapper);*/
+  actor->SetMapper(polyMapper);
 
+  // create a scene that keeps track of all the actors in the workspace
+  vtkSmartPointer < vtkRenderer > renderer = vtkSmartPointer < vtkRenderer >::New() ;
+  renderer->AddActor ( actor ) ;
+  renderer -> SetViewport(0.5, 0,1,1);
 
-  //---RENDER2---//
-  vtkSmartPointer < vtkRenderer > renderer2 = vtkSmartPointer < vtkRenderer >::New() ;
-  renderer2->SetViewport(0.5, 0, 1, 1);
-  //renderer2->AddActor(actor);
-  renderer2->AddActor(text2);
+  BaseImageToVTKFilterType::Pointer faitkToVTKfilter = BaseImageToVTKFilterType::New() ;
+  faitkToVTKfilter->SetInput ( faImageFilter -> GetOutput() ) ;
+  faitkToVTKfilter->Update() ;
+  faitkToVTKfilter->GetOutput() ;
+
   
-  	//---RENDER2CAMERA---//
-    ImageType::IndexType defaultSeed ;
-    defaultSeed[0] = 73; defaultSeed[1] = 89; defaultSeed[2] = 38;
+  //---IMAGESLICE---//
+  vtkSmartPointer < vtkImageSliceMapper > imageMapper = vtkSmartPointer < vtkImageSliceMapper > ::New() ;
+  imageMapper->SetInputData ( faitkToVTKfilter->GetOutput() ) ;
+  imageMapper->SetOrientationToX () ;
+  imageMapper->SetSliceNumber ( 55 ) ;
+  imageMapper->SliceAtFocalPointOn () ;
+  imageMapper->SliceFacesCameraOn () ;  
+  
+  vtkSmartPointer <vtkImageSlice> slice = vtkSmartPointer <vtkImageSlice> ::New();
+  slice->SetMapper(imageMapper);
+  slice->GetProperty()->SetColorWindow(0.8879);
+  slice->GetProperty()->SetColorLevel(0.4440);
+  
+
+  // VTK Portion of the code - visualization pipeline
+  // mapper
+  vtkSmartPointer < vtkImageSliceMapper > faimageMapper = vtkSmartPointer < vtkImageSliceMapper > ::New() ;
+  faimageMapper->SetInputData ( faitkToVTKfilter->GetOutput() ) ;
+  faimageMapper->SetOrientationToX () ;
+  faimageMapper->SetSliceNumber ( 55 ) ;
+  std::cout << "default for atfocalpoint: " << faimageMapper->GetSliceAtFocalPoint () << std::endl ;
+  std::cout << "default for faces camera: " << faimageMapper->GetSliceFacesCamera () << std::endl ;
+  faimageMapper->SliceAtFocalPointOn () ;
+  faimageMapper->SliceFacesCameraOn () ;
+
+  // slice
+  vtkSmartPointer <vtkImageSlice> faImageSlicer = vtkSmartPointer <vtkImageSlice> ::New();
+  faImageSlicer->SetMapper(faimageMapper);
+  faImageSlicer->GetProperty()->SetColorWindow(0.8879);
+  faImageSlicer->GetProperty()->SetColorLevel(0.4440);
+  
+  vtkSmartPointer < vtkRenderer > farenderer = vtkSmartPointer < vtkRenderer >::New() ;
+  farenderer->AddViewProp ( slice ) ;
+  farenderer->SetViewport(0,0,0.5,1);
+
+  //---RENDER1CAMERA---//
+	  vtkSmartPointer < vtkCamera > camera = farenderer->GetActiveCamera() ;
+
+	  double position[3],  imageCenter[3] ;
+	  faitkToVTKfilter->GetOutput()->GetCenter ( imageCenter ) ;
+	  position[0] = imageCenter[0] ;
+	  position[1] = imageCenter[1] ;
+	  position[2] = -160 ;
+	  double spacing[3] ;
+	  int imageDims[3] ;
+	  faitkToVTKfilter->GetOutput()->GetSpacing ( spacing ) ;
+	  faitkToVTKfilter->GetOutput()->GetDimensions ( imageDims ) ;
+	  double imagePhysicalSize[3] ;
+	  for ( unsigned int d = 0 ; d < 3 ; d++ )
+	    {
+	      imagePhysicalSize[d] = spacing[d] * imageDims[d] ;
+	    }
+	  camera->ParallelProjectionOn () ; 
+	  camera->SetFocalPoint ( imageCenter ) ;
+	  camera->SetPosition ( position ) ;
+	  camera->SetParallelScale ( imageDims[2] / 0.8 ) ;
+  
+  //---RENDER2CAMERA---//
     double thisIndexFP[3], thisIndexPosition[3];
-    thisIndexFP[0] = defaultSeed[0]; thisIndexFP[1] = defaultSeed[1]; thisIndexFP[2] = defaultSeed[2];
+    thisIndexFP[0] = thisIndex[0]; thisIndexFP[1] = thisIndex[1]; thisIndexFP[2] = thisIndex[2];
     thisIndexPosition[0] = thisIndexFP[0]; thisIndexPosition[1] = thisIndexFP[1];
     thisIndexPosition[2] = -160;
-  	renderer2->ResetCamera();
-  	camera = renderer2->GetActiveCamera();
+  	renderer->ResetCamera();
+  	camera = renderer->GetActiveCamera();
     camera->ParallelProjectionOn () ; 
     camera->SetFocalPoint ( thisIndexFP ) ;
     camera->SetPosition ( thisIndexPosition ) ;
-    camera->SetParallelScale ( imageDims[2] / 0.8 ) ;
+    camera->SetParallelScale ( imageDims[2] / 0.8 );
   
   //---WINDOW---//
   vtkSmartPointer < vtkRenderWindow > window = vtkSmartPointer < vtkRenderWindow >::New() ;
-  window->AddRenderer ( renderer1 ) ;
-  window->AddRenderer ( renderer2 );
+  window->AddRenderer ( farenderer ) ;
+  window->AddRenderer ( renderer );
   window->SetSize ( 1000, 500 ) ;
   window->Render();
 
@@ -632,23 +525,23 @@ int main ( int argc, char * argv[] )
   interactor->SetPicker(pointPicker);
   interactor->SetRenderWindow ( window ) ;
 
-  vtkNew<MouseInteractorStylePP> style;
+  vtkNew<myMouseInteractor> style;
   interactor->SetInteractorStyle(style);
 
   interactor->Initialize() ;
-  interactor->CreateRepeatingTimer ( 100 ) ;
+  interactor->CreateRepeatingTimer ( 0.5 ) ;
 
-  /*vtkNew<vtkCallbackCommand> timerCallback;
-  timerCallback->SetCallback(TimerCallbackFunction);
-  timerCallback->SetClientData(programmableFilter);
-  interactor->AddObserver(vtkCommand::TimerEvent, timerCallback);*/
+  vtkNew<vtkCallbackCommand> timerCallback;
+  timerCallback->SetCallback(MyTimerCallBack);
+  timerCallback->SetClientData(timerprogrammableFilter);
+
+  interactor->AddObserver(vtkCommand::TimerEvent, timerCallback);
 
   // Run
   interactor->Start() ;
   interactor->ReInitialize();
 
+
   // Done.
   return 0 ;
 }
-
-
